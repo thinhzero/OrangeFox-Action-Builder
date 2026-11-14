@@ -91,11 +91,25 @@ jobs:
     - name: Building OrangeFox
       run: |
         cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ inputs.MANIFEST_BRANCH }}
+        export FOX_BUILD_DEVICE="${{ inputs.DEVICE_NAME }}"
+        unset ALLOW_MISSING_DEPENDENCIES SOONG_ALLOW_MISSING_DEPENDENCIES
         set +e
         source build/envsetup.sh
-        export ALLOW_MISSING_DEPENDENCIES=true
         set -e
-        lunch twrp_${{ inputs.DEVICE_NAME }}-eng && make clean && mka adbd ${{ inputs.BUILD_TARGET }}image
+        if [[ -f "${{ inputs.DEVICE_PATH }}/scripts/check-tree.py" ]]; then
+          python3 "${{ inputs.DEVICE_PATH }}/scripts/check-tree.py"
+        fi
+        lunch "twrp_${{ inputs.DEVICE_NAME }}-eng"
+        if [[ -f "${{ inputs.DEVICE_PATH }}/vendorsetup.sh" ]]; then
+          source "${{ inputs.DEVICE_PATH }}/vendorsetup.sh" "${{ inputs.DEVICE_NAME }}"
+        fi
+        make clean
+        mka adbd "${{ inputs.BUILD_TARGET }}image"
+        if [[ "${{ inputs.DEVICE_NAME }}" == "thyme" && "${{ inputs.BUILD_TARGET }}" == "boot" ]]; then
+          python3 "${{ inputs.DEVICE_PATH }}/scripts/check-tree.py" \
+            --recovery-root "out/target/product/${{ inputs.DEVICE_NAME }}/recovery/root" \
+            --boot-image "out/target/product/${{ inputs.DEVICE_NAME }}/boot.img"
+        fi
 
     - name: Set Release Properties
       run: |
