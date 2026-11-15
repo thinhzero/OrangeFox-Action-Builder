@@ -100,6 +100,23 @@ jobs:
           echo 'THYME_BOOT_TEST=1' >> "$GITHUB_ENV"
         fi
 
+    - name: Restore strict-build HIDL test dependency
+      if: env.THYME_BOOT_TEST == '1'
+      run: |
+        set -euo pipefail
+        [[ "$MANIFEST_BRANCH" == 12.1 ]]
+        cd "${GITHUB_WORKSPACE}/OrangeFox/fox_${MANIFEST_BRANCH}"
+        # The minimal manifest removes this project, but HIDL's Soong load hook
+        # still creates VTS fuzz modules referring to its real cc_defaults.
+        # Restore the matching AOSP source; do not stub the module or allow
+        # missing dependencies. These test modules are not recovery packages.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/test/vts-testcase/fuzz \
+          test/vts-testcase/fuzz
+        [[ "$(git -C test/vts-testcase/fuzz rev-parse HEAD)" == 6148b27ab136ae012e97fdeae96978edcb5ca7b7 ]]
+        grep -q 'name: "vts_proto_fuzzer_default"' test/vts-testcase/fuzz/iface_fuzzer/Android.bp
+        [[ -f test/vts/proto/Android.bp && -d external/llvm/lib/Fuzzer ]]
+
     - name: Building OrangeFox
       run: |
         set -o pipefail
