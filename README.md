@@ -40,6 +40,10 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   Soong generator still refers to `vts_proto_fuzzer_default`. This profile restores
   the **real AOSP project**, tag `android-12.1.0_r4`, with commit verified against
   `6148b27ab136ae012e97fdeae96978edcb5ca7b7`; no fake defaults or HAL changes.
+  It also restores `packages/modules/NeuralNetworks` at the same AOSP tag,
+  verified commit `987db53d74e02ab01abdb0db36eb8ccea00e2548`, because retained
+  HAL utility declarations inherit `neuralnetworks_utils_defaults` from it.
+  Restoring source definitions does not add NNAPI packages to the recovery.
 - Safety variables are sourced before lunch, when OrangeFox snapshots its build
   environment. Do not upload that environment snapshot: it may contain CI secrets.
 - The workflow validates the encoded boot ramdisk and the published image, rejects
