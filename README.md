@@ -165,6 +165,14 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   `commons-cli-1.2` import and the retained AndroidX annotation import. Source/JAR
   guards check these without replacing libraries or removing platform-compat code.
 
+- Framework codegen/XML persistence host tools require `javaparser` and
+  `javaparser-symbol-solver`. The complete `external/javaparser` project is restored
+  at `acd7a527fc44f5e516a50ff61eb1da2ba9272d31`, including its generated parser
+  sources and all license files. The solver's `external/javassist` dependency is
+  restored at `7bd5da870ec56352887396c1c188350f733e4f3c`; Guava is already restored.
+  Both pins use the same AOSP tag. Upstream Blueprints remain unchanged, and no
+  parser libraries, generators or tests are added to recovery packages.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.

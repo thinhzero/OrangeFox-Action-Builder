@@ -400,6 +400,34 @@ jobs:
         grep -q 'name: "guava"' external/guava/Android.bp
         grep -q 'name: "jsr305"' external/jsr305/Android.bp
         grep -q 'name: "tradefed"' tools/tradefederation/prebuilts/test_harness/Android.bp
+        # Retained framework codegen/XML persistence tools use the real parser
+        # and symbol solver. Keep generated parser sources and all license files;
+        # the solver also needs Javassist and the already restored Guava library.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'JAVAPARSER_PROJECTS'
+        external/javaparser acd7a527fc44f5e516a50ff61eb1da2ba9272d31
+        external/javassist 7bd5da870ec56352887396c1c188350f733e4f3c
+        JAVAPARSER_PROJECTS
+        grep -q 'name: "javaparser"' external/javaparser/Android.bp
+        grep -q 'name: "javaparser-symbol-solver"' external/javaparser/Android.bp
+        grep -q 'name: "javassist"' external/javassist/Android.bp
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'JAVAPARSER_INPUTS'
+        external/javaparser/LICENSE
+        external/javaparser/LICENSE.APACHE
+        external/javaparser/LICENSE.GPL
+        external/javaparser/LICENSE.LGPL
+        external/javaparser/javaparser-core/src/main/java/com/github/javaparser/JavaParser.java
+        external/javaparser/javaparser-core/generated-sources/javacc/com/github/javaparser/GeneratedJavaParser.java
+        external/javaparser/javaparser-symbol-solver-core/src/main/java/com/github/javaparser/symbolsolver/JavaSymbolSolver.java
+        external/javassist/LICENSE
+        external/javassist/src/main/javassist/ClassPool.java
+        JAVAPARSER_INPUTS
+        grep -q 'name: "guava"' external/guava/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
