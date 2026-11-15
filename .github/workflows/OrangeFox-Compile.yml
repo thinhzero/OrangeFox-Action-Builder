@@ -138,6 +138,24 @@ jobs:
         git -C platform_testing sparse-checkout set --no-cone /libraries/annotations/
         git -C platform_testing checkout --detach HEAD
         grep -q 'name: "platform-test-annotations"' platform_testing/libraries/annotations/Android.bp
+        # Tethering coverage tests inherit a real java_defaults from NetworkStack
+        # tests/unit/Android.bp, not from the project's root Android.bp.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/packages/modules/NetworkStack \
+          packages/modules/NetworkStack
+        [[ "$(git -C packages/modules/NetworkStack rev-parse HEAD)" == ae471a43f6198859028f3f987c72aa17ae890ff1 ]]
+        grep -q 'name: "libnetworkstackutilsjni_deps"' packages/modules/NetworkStack/tests/unit/Android.bp
+        [[ -f packages/modules/NetworkStack/tests/unit/jni/Android.bp ]]
+        grep -q 'name: "framework-connectivity-test-defaults"' packages/modules/Connectivity/tests/common/Android.bp
+
+    - name: Diagnose literal source defaults
+      if: env.THYME_BOOT_TEST == '1'
+      run: |
+        set -euo pipefail
+        python3 scripts/test-audit-defaults.py
+        python3 scripts/audit-defaults.py \
+          --source-root "${GITHUB_WORKSPACE}/OrangeFox/fox_${MANIFEST_BRANCH}" \
+          --report "${GITHUB_WORKSPACE}/source-defaults-report.json"
 
     - name: Building OrangeFox
       run: |
@@ -214,6 +232,7 @@ jobs:
         if-no-files-found: ignore
         path: |
           build.log
+          source-defaults-report.json
           OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/error.log
           OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/soong.log
           OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/verbose.log.gz

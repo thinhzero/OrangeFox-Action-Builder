@@ -50,6 +50,16 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   `af7eaff31e0aed03c06f6bade385397d792f4008` (both at the same AOSP tag).
   These are upstream definitions and Java sources, not dummy modules; complete
   CTS/platform test suites are not checked out or added to the recovery.
+  Tethering test declarations require NetworkStack's
+  `tests/unit/Android.bp:libnetworkstackutilsjni_deps`; the matching project is
+  restored at `ae471a43f6198859028f3f987c72aa17ae890ff1` (same AOSP tag), including
+  its actual JNI sources. NetworkStack is not added to recovery packages.
+- Before building this profile, an advisory read-only scan reports literal
+  defaults references without literal definitions, capped at 200 candidate names.
+  `source-defaults-report.json` is retained with build diagnostics. This is **not
+  Soong evaluation**: namespaces, generated modules, variants, types and dynamic
+  Blueprint expressions are not resolved. It never suppresses modules, edits
+  sources or enables missing-dependency bypasses; the strict build is authoritative.
 - Safety variables are sourced before lunch, when OrangeFox snapshots its build
   environment. Do not upload that environment snapshot: it may contain CI secrets.
 - The workflow validates the encoded boot ramdisk and the published image, rejects
