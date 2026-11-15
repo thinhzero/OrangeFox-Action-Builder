@@ -94,29 +94,91 @@ jobs:
         git clone "$DEVICE_TREE" -b "$DEVICE_TREE_BRANCH" "./${DEVICE_PATH}"
         cd "$DEVICE_PATH"
         echo "COMMIT_ID=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+        if [[ "$DEVICE_NAME" == "thyme" && -f prebuilt/pixelos/manifest.json ]]; then
+          python3 -c 'import json; assert json.load(open("prebuilt/pixelos/manifest.json"))["profile"] == "PixelOS17-boot-test"'
+          [[ "$BUILD_TARGET" == "boot" ]] || { echo 'PixelOS boot-test only supports BUILD_TARGET=boot'; exit 1; }
+          echo 'THYME_BOOT_TEST=1' >> "$GITHUB_ENV"
+        fi
 
     - name: Building OrangeFox
       run: |
+        set -o pipefail
         cd "${GITHUB_WORKSPACE}/OrangeFox/fox_${MANIFEST_BRANCH}"
         export FOX_BUILD_DEVICE="$DEVICE_NAME"
         unset ALLOW_MISSING_DEPENDENCIES SOONG_ALLOW_MISSING_DEPENDENCIES
         set +e
         source build/envsetup.sh
         set -e
+        # OrangeFox snapshots exported flags during lunch, not after it.
+        if [[ -f "${DEVICE_PATH}/vendorsetup.sh" ]]; then
+          source "${DEVICE_PATH}/vendorsetup.sh" "$DEVICE_NAME"
+        fi
+        unset ALLOW_MISSING_DEPENDENCIES SOONG_ALLOW_MISSING_DEPENDENCIES
         if [[ -f "${DEVICE_PATH}/scripts/check-tree.py" ]]; then
           python3 "${DEVICE_PATH}/scripts/check-tree.py"
+        fi
+        if [[ "${THYME_BOOT_TEST:-}" == 1 ]]; then
+          for test in test-check-tree.py test-prepare-recovery.py test-ramdisk.py; do
+            python3 "${DEVICE_PATH}/scripts/$test"
+          done
         fi
         lunch "twrp_${DEVICE_NAME}-eng"
         if [[ -f "${DEVICE_PATH}/vendorsetup.sh" ]]; then
           source "${DEVICE_PATH}/vendorsetup.sh" "$DEVICE_NAME"
         fi
+        unset ALLOW_MISSING_DEPENDENCIES SOONG_ALLOW_MISSING_DEPENDENCIES
+        if [[ "${THYME_BOOT_TEST:-}" == 1 ]]; then
+          # Never print/upload fox_env.sh: it may include credentials from CI.
+          bash -ec 'source /tmp/thyme/fox_env.sh; [[ "$FOX_VARIANT" == PixelOS17-boot-test && "$FOX_DISABLE_UPDATEZIP" == 1 && "$OF_NO_REFLASH_CURRENT_ORANGEFOX" == 1 ]]; [[ -z "${ALLOW_MISSING_DEPENDENCIES:-}${SOONG_ALLOW_MISSING_DEPENDENCIES:-}" ]]'
+        fi
         make clean
-        mka adbd "${BUILD_TARGET}image"
+        mka adbd "${BUILD_TARGET}image" 2>&1 | tee "${GITHUB_WORKSPACE}/build.log"
         if [[ "$DEVICE_NAME" == "thyme" && "$BUILD_TARGET" == "boot" ]]; then
           python3 "${DEVICE_PATH}/scripts/check-tree.py" \
             --recovery-root "out/target/product/${DEVICE_NAME}/recovery/root" \
             --boot-image "out/target/product/${DEVICE_NAME}/boot.img"
         fi
+
+    - name: Validate published boot-test images
+      if: env.THYME_BOOT_TEST == '1'
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/OrangeFox/fox_${MANIFEST_BRANCH}"
+        shopt -s nullglob
+        out="out/target/product/${DEVICE_NAME}"
+        images=("$out"/OrangeFox*.img)
+        zips=("$out"/OrangeFox*.zip)
+        [[ ${#images[@]} -gt 0 && ${#zips[@]} -eq 0 ]]
+        mkdir -p "${GITHUB_WORKSPACE}/boot-test-release"
+        for image in "${images[@]}"; do
+          cmp "$out/boot.img" "$image"
+          python3 "${DEVICE_PATH}/scripts/check-tree.py" \
+            --recovery-root "$out/recovery/root" --boot-image "$image"
+          cp "$image" "${GITHUB_WORKSPACE}/boot-test-release/"
+        done
+        cd "${GITHUB_WORKSPACE}/boot-test-release"
+        sha256sum -- *.img > SHA256SUMS
+        cat > BOOT-TEST.txt <<EOF
+        PixelOS 17 / Mi 10S (thyme): temporary fastboot boot test only.
+        Device-tree commit: ${COMMIT_ID}
+        Build run: ${GITHUB_RUN_ID}
+        Do NOT flash this image to boot/vendor_boot or install it using Flash current.
+        Keep the matching PixelOS vendor_boot and DTBO unchanged.
+        Host/image checks passed; hardware boot, touch, USB and decryption are NOT verified.
+        EOF
+
+    - name: Upload build diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-diagnostics-${{ github.run_id }}
+        if-no-files-found: ignore
+        path: |
+          build.log
+          OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/error.log
+          OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/soong.log
+          OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/verbose.log.gz
+          boot-test-release/SHA256SUMS
 
     - name: Set Release Properties
       run: |
@@ -130,6 +192,7 @@ jobs:
         echo "DEVICE_TREE_URL=${DEVICE_TREE_URL}" >> "$GITHUB_ENV"
 
     - name: Upload to Release
+      if: env.THYME_BOOT_TEST != '1'
       uses: softprops/action-gh-release@v2
       with:
         files: |
@@ -142,4 +205,20 @@ jobs:
           Build: fox_${{ env.MANIFEST_BRANCH }}
           Device: [Device Tree/Branch](${{ env.DEVICE_TREE_URL }}/tree/${{ env.DEVICE_TREE_BRANCH }})
           Commit: Most recent [commit](${{ env.DEVICE_TREE_URL }}/commit/${{ env.COMMIT_ID }}) during building.
+
+    - name: Publish validated temporary boot-test
+      if: env.THYME_BOOT_TEST == '1'
+      uses: softprops/action-gh-release@v2
+      with:
+        fail_on_unmatched_files: true
+        files: boot-test-release/*
+        prerelease: true
+        name: 'OrangeFox thyme PixelOS 17 — BOOT TEST ONLY // ${{ env.BUILD_DATE }}'
+        tag_name: ${{ github.run_id }}
+        body: |
+          **Temporary `fastboot boot` test only. Do not flash/install this image.**
+          Keep the matching PixelOS vendor_boot and DTBO; no ZIP installer is supplied.
+          Kernel/header/encoded ramdisk/staging checks passed, not hardware boot or decryption.
+          Device-tree commit: ${{ env.COMMIT_ID }} (branch `${{ env.DEVICE_TREE_BRANCH }}`).
+          Verify the downloaded image using `SHA256SUMS`. See `BOOT-TEST.txt`.
           
