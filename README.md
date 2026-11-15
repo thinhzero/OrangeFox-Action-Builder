@@ -68,6 +68,12 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   source projects `external/junit` and `external/hamcrest` are restored at
   `7c5c0ba1f123304da6f14f9d34d83b89851ccda2` and
   `b6b17dc33ec3cfffb9bc227e14c3042626c08f4e`, respectively (same AOSP tag).
+  Retained `vts-tradefed-tests` statically references `easymock`. The complete
+  `external/easymock` source project is restored at
+  `51beb6618fd32fa0f2d51082f04c80c07c8677c9` (same AOSP tag), preserving its
+  `easymock` host/device variants, `easymocklib` wrapper and license files.
+  This version has no other explicit library dependencies; no VTS tests or
+  mocking libraries are added to recovery packages.
 - Retained `dx-docs` requires `droiddoc-templates-sdk` from Doclava. The profile
   restores the complete Doclava project (templates and Java modules), together
   with the following source dependencies at `android-12.1.0_r4`, verifying every

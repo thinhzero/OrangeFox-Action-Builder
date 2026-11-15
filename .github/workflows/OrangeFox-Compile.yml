@@ -179,6 +179,15 @@ jobs:
           https://android.googlesource.com/platform/external/hamcrest external/hamcrest
         [[ "$(git -C external/hamcrest rev-parse HEAD)" == b6b17dc33ec3cfffb9bc227e14c3042626c08f4e ]]
         grep -q 'name: "hamcrest"' external/hamcrest/hamcrest-core/Android.bp
+        # Retained VTS Tradefed tests statically depend on EasyMock. Restore its
+        # original source/host variant and license, not a prebuilt or fake module.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/easymock external/easymock
+        [[ "$(git -C external/easymock rev-parse HEAD)" == 51beb6618fd32fa0f2d51082f04c80c07c8677c9 ]]
+        grep -q 'name: "easymock"' external/easymock/Android.bp
+        grep -q 'name: "easymocklib"' external/easymock/Android.bp
+        [[ -f external/easymock/src/org/easymock/EasyMock.java ]]
+        [[ -f external/easymock/LICENSE.txt && -f external/easymock/NOTICE ]]
         # dx-docs needs Doclava's SDK templates. Its root Android.bp also declares
         # Java libraries, so restore their real source dependency chain together.
         # Keep ErrorProne's upstream JARs AND Soong plugin; do not stub annotations
