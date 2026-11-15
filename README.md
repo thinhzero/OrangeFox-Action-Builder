@@ -173,6 +173,24 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   Both pins use the same AOSP tag. Upstream Blueprints remain unchanged, and no
   parser libraries, generators or tests are added to recovery packages.
 
+- The retained Robolectric runtime prebuilt depends on its real
+  `robolectric-host-android_all` source library. Restore the following projects
+  from the same AOSP tag, preserving original Blueprints/licenses, the Soong
+  build-property plugin, Java/test resources and Makefile helpers. Mockito keeps
+  its upstream Byte Buddy JARs; no placeholders or replacement runtimes are used.
+
+  | Project | Verified commit | Checkout scope |
+  | --- | --- | --- |
+  | `external/robolectric-shadows` | `fc6f4e51fa28f85090051012a491dd1ab0233eef` | Complete project, including `soong` |
+  | `external/mockito` | `7eb0861430819806dced351813582a5aa666e670` | Complete project |
+  | `external/objenesis` | `6392daddb9a890ad7a2142efb470d105e5824ac9` | Complete project |
+  | `packages/services/Car` | `af051f0a86d0ded75e4be48aa3387c68d569202b` | Root metadata and complete `car-lib` source/API/native inputs; not the Automotive service/UI or their root Makefile |
+
+  `android.car` is an explicit input of the original android-all host library.
+  Framework resource/tzdata modules and the remaining retained/restored libraries
+  are not replaced. These source declarations do not add Robolectric, mocking
+  libraries, Automotive code or host tests to recovery packages.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.

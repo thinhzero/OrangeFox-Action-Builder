@@ -428,6 +428,53 @@ jobs:
         external/javassist/src/main/javassist/ClassPool.java
         JAVAPARSER_INPUTS
         grep -q 'name: "guava"' external/guava/Android.bp
+        # The retained android-all runtime prebuilt has a real source-library
+        # dependency. Restore Robolectric's original declarations/Soong plugin,
+        # plus the Mockito/Objenesis libraries used by its declared host tests.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'ROBOLECTRIC_PROJECTS'
+        external/robolectric-shadows fc6f4e51fa28f85090051012a491dd1ab0233eef
+        external/mockito 7eb0861430819806dced351813582a5aa666e670
+        external/objenesis 6392daddb9a890ad7a2142efb470d105e5824ac9
+        ROBOLECTRIC_PROJECTS
+        grep -q 'name: "robolectric-host-android_all"' external/robolectric-shadows/Android.bp
+        grep -q 'name: "soong-robolectric"' external/robolectric-shadows/soong/Android.bp
+        grep -q 'android.RegisterModuleType("robolectric_build_props", buildPropsFactory)' external/robolectric-shadows/soong/robolectric.go
+        grep -q 'name: "mockito"' external/mockito/Android.bp
+        grep -q 'name: "objenesis"' external/objenesis/Android.bp
+        # android-all includes android.car. Keep the complete original car-lib
+        # source/API/native inputs, not the unrelated Automotive service/UI tree
+        # or its top-level Makefile that unconditionally includes that UI tree.
+        git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/packages/services/Car packages/services/Car
+        [[ "$(git -C packages/services/Car rev-parse HEAD)" == af051f0a86d0ded75e4be48aa3387c68d569202b ]]
+        git -C packages/services/Car sparse-checkout set --no-cone /OWNERS /README.md /.gitignore /car-lib/
+        git -C packages/services/Car checkout --detach HEAD
+        grep -q 'name: "android.car"' packages/services/Car/car-lib/Android.bp
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'ROBOLECTRIC_INPUTS'
+        external/robolectric-shadows/LICENSE
+        external/robolectric-shadows/soong/robolectric.go
+        external/robolectric-shadows/processor/sdks.txt
+        external/robolectric-shadows/run_robolectric_module_tests.mk
+        external/mockito/LICENSE
+        external/mockito/lib/byte-buddy-1.8.15.jar
+        external/mockito/lib/byte-buddy-agent-1.8.15.jar
+        external/objenesis/LICENSE.txt
+        external/objenesis/NOTICE
+        packages/services/Car/car-lib/src/android/car/Car.java
+        packages/services/Car/car-lib/src/android/car/ICar.aidl
+        packages/services/Car/car-lib/api/current.txt
+        packages/services/Car/car-lib/native/CarPowerManager/CarPowerManager.cpp
+        ROBOLECTRIC_INPUTS
+        # Existing framework resources and tzdata remain real upstream modules.
+        grep -q 'name: "robolectric_framework_raw_res_files"' frameworks/base/core/res/Android.bp
+        grep -q 'name: "robolectric_tzdata"' system/timezone/output_data/Android.bp
+        grep -q 'name: "robolectric-android-all-prebuilts"' prebuilts/misc/common/robolectric/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
