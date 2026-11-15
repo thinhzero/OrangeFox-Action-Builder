@@ -191,6 +191,23 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   are not replaced. These source declarations do not add Robolectric, mocking
   libraries, Automotive code or host tests to recovery packages.
 
+- Retained `class2nonsdklistlib` links TestNG. Restore the complete TestNG,
+  SnakeYAML, Guice and JSR330 projects from `android-12.1.0_r4`, with their original
+  Blueprints, licenses and source inputs. Keep TestNG's generated version and
+  Android replacements, Guice's `munge.jar`-based `NO_AOP` source generation, and
+  SnakeYAML's four Android-only patches; do not patch source checkouts in place.
+
+  | Project | Verified commit |
+  | --- | --- |
+  | `external/testng` | `7d03e9745613c3e46e9af47afbf91be445f53403` |
+  | `external/snakeyaml` | `d971be9389db578ce6c6805f566c0261a27cc503` |
+  | `external/guice` | `30203d0536ebb60ce6d60c291e93bd658558a1d3` |
+  | `external/jsr330` | `bd6043d83744a331fe1cf5336cfcf15051b36854` |
+
+  JCommander, JUnit and Guava are already restored; `soong_zip` is a retained
+  upstream build tool. No host tests, TestNG or dependency-injection libraries
+  are added to recovery packages.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.

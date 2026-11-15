@@ -475,6 +475,52 @@ jobs:
         grep -q 'name: "robolectric_framework_raw_res_files"' frameworks/base/core/res/Android.bp
         grep -q 'name: "robolectric_tzdata"' system/timezone/output_data/Android.bp
         grep -q 'name: "robolectric-android-all-prebuilts"' prebuilts/misc/common/robolectric/Android.bp
+        # The retained class2nonsdklist host library links TestNG. Preserve its
+        # version generator, Android replacements and real transitive sources;
+        # Guice keeps upstream NO_AOP munging, SnakeYAML its Android-only patches.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'TESTNG_PROJECTS'
+        external/testng 7d03e9745613c3e46e9af47afbf91be445f53403
+        external/snakeyaml d971be9389db578ce6c6805f566c0261a27cc503
+        external/guice 30203d0536ebb60ce6d60c291e93bd658558a1d3
+        external/jsr330 bd6043d83744a331fe1cf5336cfcf15051b36854
+        TESTNG_PROJECTS
+        grep -q 'name: "testng"' external/testng/Android.bp
+        grep -q 'name: "testng-generated-srcs"' external/testng/Android.bp
+        grep -q 'name: "snakeyaml"' external/snakeyaml/Android.bp
+        grep -q 'name: "guice"' external/guice/Android.bp
+        grep -q 'name: "guice_munged_srcs"' external/guice/Android.bp
+        grep -q 'name: "jsr330"' external/jsr330/Android.bp
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'TESTNG_INPUTS'
+        external/testng/LICENSE.txt
+        external/testng/NOTICE
+        external/testng/generate-version-file
+        external/testng/kobalt/src/Build.kt
+        external/testng/src/main/resources/org/testng/internal/VersionTemplateJava
+        external/testng/android-src/java/org/testng/internal/Bsh.java
+        external/snakeyaml/LICENSE.txt
+        external/snakeyaml/NOTICE
+        external/snakeyaml/patch-android-src
+        external/snakeyaml/src/patches/android/CompactConstructor.patch
+        external/snakeyaml/src/patches/android/Constructor.patch
+        external/snakeyaml/src/patches/android/PropertyUtils.patch
+        external/snakeyaml/src/patches/android/Representer.patch
+        external/guice/COPYING
+        external/guice/NOTICE
+        external/guice/lib/build/munge.jar
+        external/jsr330/NOTICE
+        external/jsr330/src/javax/inject/Inject.java
+        TESTNG_INPUTS
+        [[ -x external/testng/generate-version-file && -x external/snakeyaml/patch-android-src ]]
+        grep -q 'name: "jcommander"' external/jcommander/Android.bp
+        grep -q 'name: "junit"' external/junit/Android.bp
+        grep -q 'name: "guava"' external/guava/Android.bp
+        grep -q 'name: "soong_zip"' build/soong/zip/cmd/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
