@@ -182,6 +182,58 @@ jobs:
         grep -q 'name: "error_prone_annotations"' external/error_prone/Android.bp
         grep -q 'name: "soong-java-config-error_prone"' external/error_prone/soong/Android.bp
         [[ -f external/error_prone/error_prone/error_prone_annotations-2.4.0.jar ]]
+        # Metalava's Kotlin sources need the actual compiler as well as stdlib
+        # modules. fs_mgr's retained host tests use the upstream Tradefed import.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/kotlinc external/kotlinc
+        [[ "$(git -C external/kotlinc rev-parse HEAD)" == 5a266bf3adea01dbf7c5453e240333446eeee8cc ]]
+        grep -q 'name: "kotlin-reflect"' external/kotlinc/Android.bp
+        [[ -x external/kotlinc/bin/kotlinc && -f external/kotlinc/lib/kotlin-compiler.jar ]]
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/tools/tradefederation/prebuilts tools/tradefederation/prebuilts
+        [[ "$(git -C tools/tradefederation/prebuilts rev-parse HEAD)" == 2a5fd21caf0d161ef6fc2efec1fadf2f31986039 ]]
+        grep -q 'name: "tradefed"' tools/tradefederation/prebuilts/test_harness/Android.bp
+        [[ -f tools/tradefederation/prebuilts/filegroups/tradefed/tradefed.jar ]]
+        # Keep the complete Maven subtree, including robolectric.bp included by
+        # its Android.bp, plus the root SDK API-version directory declaration.
+        # Other unrelated cloud-client/platform prebuilts are not checked out.
+        git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/prebuilts/tools prebuilts/tools
+        [[ "$(git -C prebuilts/tools rev-parse HEAD)" == 742ee2c4a94f04fb86ffbc5a72cb6eaa3e9c4ea0 ]]
+        git -C prebuilts/tools sparse-checkout set --no-cone \
+          /Android.bp /METADATA /.gitignore /common/m2/ /common/api-versions/
+        git -C prebuilts/tools checkout --detach HEAD
+        grep -q 'name: "metalava-tools-common-m2-deps"' prebuilts/tools/common/m2/Android.bp
+        [[ -f prebuilts/tools/common/m2/robolectric.bp ]]
+        # The Gradle repository is much larger. Restore its unmodified root
+        # import and every versioned artifact directory that import declares.
+        git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/prebuilts/gradle-plugin prebuilts/gradle-plugin
+        [[ "$(git -C prebuilts/gradle-plugin rev-parse HEAD)" == 521e990cdd59af10203ca5cbacb34a89eddc4ed7 ]]
+        git -C prebuilts/gradle-plugin sparse-checkout set --no-cone --stdin <<'METALAVA_GRADLE_PATHS'
+        /Android.bp
+        /METADATA
+        /.gitignore
+        /com/android/tools/lint/lint-api/30.0.0-alpha14/
+        /com/android/tools/lint/lint-checks/30.0.0-alpha14/
+        /com/android/tools/lint/lint/30.0.0-alpha14/
+        /com/android/tools/lint/lint-gradle/30.0.0-alpha14/
+        /com/android/tools/lint/lint-model/30.0.0-alpha14/
+        /com/android/tools/common/30.0.0-alpha14/
+        /com/android/tools/sdk-common/30.0.0-alpha14/
+        /com/android/tools/sdklib/30.0.0-alpha14/
+        /com/android/tools/external/org-jetbrains/uast/30.0.0-alpha14/
+        /com/android/tools/external/com-intellij/intellij-core/30.0.0-alpha14/
+        /com/android/tools/external/com-intellij/kotlin-compiler/30.0.0-alpha14/
+        /com/android/tools/repository/30.0.0-alpha14/
+        /com/android/tools/build/manifest-merger/30.0.0-alpha14/
+        METALAVA_GRADLE_PATHS
+        git -C prebuilts/gradle-plugin checkout --detach HEAD
+        grep -q 'name: "metalava-gradle-plugin-deps"' prebuilts/gradle-plugin/Android.bp
+        # Cross-project imports remain real modules from the retained sources.
+        grep -q 'name: "asm-7.0"' prebuilts/misc/common/asm/Android.bp
+        grep -q 'name: "platformprotos"' frameworks/base/ProtoLibraries.bp
+        grep -q '"ProtoLibraries.bp"' frameworks/base/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'

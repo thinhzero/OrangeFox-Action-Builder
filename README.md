@@ -75,6 +75,24 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   | `jsr305` | `ef7ea7b4611582d4c3cd14b868694bab8604a670` |
   | `error_prone` | `aa48ec720e6665859f4442850b1988791df2af18` |
 
+- Metalava and retained fs_mgr host-test declarations also need Kotlin, Maven,
+  Gradle and Tradefed modules. These upstream projects are restored at the same
+  AOSP tag with the commits below. Kotlin includes its actual compiler and runtime;
+  Tradefed includes its original imports/filegroups and prebuilt JARs. The
+  `platformprotos` and `asm-7.0` dependencies are checked in the retained framework
+  and misc prebuilts, not replaced with placeholders.
+
+  | Project | Verified commit | Checkout scope |
+  | --- | --- | --- |
+  | `external/kotlinc` | `5a266bf3adea01dbf7c5453e240333446eeee8cc` | Complete project |
+  | `tools/tradefederation/prebuilts` | `2a5fd21caf0d161ef6fc2efec1fadf2f31986039` | Complete project |
+  | `prebuilts/tools` | `742ee2c4a94f04fb86ffbc5a72cb6eaa3e9c4ea0` | Root declarations/metadata, complete `common/m2` (including `robolectric.bp`) and `common/api-versions` |
+  | `prebuilts/gradle-plugin` | `521e990cdd59af10203ca5cbacb34a89eddc4ed7` | Root declarations/metadata and all 13 versioned artifact directories declared by its Metalava import |
+
+  Sparse checkout avoids unrelated large prebuilt trees; upstream build files are
+  not edited and all files declared by the selected imports are preserved. No
+  tests or documentation tools are added to recovery packages.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.
