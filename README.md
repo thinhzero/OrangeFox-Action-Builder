@@ -149,6 +149,22 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   No audio-policy declarations are removed or replaced; restoring source definitions
   does not add PFW tools, libraries or test programs to recovery packages.
 
+- Platform-compat's retained host libraries need BCEL, dexlib2 and the SDK-level
+  test helper. The following real source projects are restored at the same AOSP
+  tag; dexlib2's JCommander dependency is included. Upstream Blueprints/licenses
+  are unchanged, and no host tools or tests are added to recovery packages.
+
+  | Project | Verified commit | Checkout scope |
+  | --- | --- | --- |
+  | `external/apache-commons-bcel` | `040b6144329cdd183b1d79998995800f2b9c003f` | Complete project |
+  | `external/jcommander` | `8ce937f3ef2ed68f188cc0637664933a711124de` | Complete project |
+  | `external/smali` | `bb22a92b16eb0453f7f42a540679fad20382b68d` | Root declarations/license/metadata and their script/Gradle inputs, complete `dexlib2` subtree |
+  | `frameworks/libs/modules-utils` | `0a8bde0eb27a5de62e73faf9de06a498a4ccec69` | Root package/metadata and complete `java/com/android/modules/utils/build/testing` directory |
+
+  Other explicit dependencies are existing Guava, JSR305, Tradefed, the retained
+  `commons-cli-1.2` import and the retained AndroidX annotation import. Source/JAR
+  guards check these without replacing libraries or removing platform-compat code.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.
