@@ -521,6 +521,41 @@ jobs:
         grep -q 'name: "junit"' external/junit/Android.bp
         grep -q 'name: "guava"' external/guava/Android.bp
         grep -q 'name: "soong_zip"' build/soong/zip/cmd/Android.bp
+        # Retained libhardware exports the real audio and Bluetooth type headers.
+        # Audio needs only its complete original header/filegroup subtree and
+        # root license. Keep Bluetooth intact: its types Blueprint also declares
+        # native libraries/tests using the project's defaults and Soong plugin.
+        git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/system/media system/media
+        [[ "$(git -C system/media rev-parse HEAD)" == 612d1707ddd53b341512a8de9b3255c314e7c0b2 ]]
+        git -C system/media sparse-checkout set --no-cone /Android.bp /NOTICE /OWNERS /audio/
+        git -C system/media checkout --detach HEAD
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/system/bt system/bt
+        [[ "$(git -C system/bt rev-parse HEAD)" == 9827945fd41eb3c7940b5ce983e21757fdbae5f6 ]]
+        grep -q 'name: "libaudio_system_headers"' system/media/audio/Android.bp
+        grep -q 'name: "libbluetooth-types-header"' system/bt/types/Android.bp
+        grep -q 'name: "soong-fluoride"' system/bt/build/Android.bp
+        grep -q 'android.RegisterModuleType("fluoride_defaults", fluorideDefaultsFactory)' system/bt/build/fluoride.go
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'HARDWARE_HEADER_INPUTS'
+        system/media/NOTICE
+        system/media/audio/include/system/audio.h
+        system/media/audio/include/system/audio-base.h
+        system/media/audio/include/system/audio-base-utils.h
+        system/media/audio/include/system/audio-hal-enums.h
+        system/media/audio/include/system/audio_common-base.h
+        system/bt/NOTICE
+        system/bt/AndroidTestTemplate.xml
+        system/bt/build/fluoride.go
+        system/bt/types/raw_address.h
+        system/bt/types/bluetooth/uuid.h
+        system/bt/types/raw_address.cc
+        system/bt/types/test/raw_address_unittest.cc
+        HARDWARE_HEADER_INPUTS
+        grep -q 'name: "libcutils_headers"' system/core/libcutils/Android.bp
+        grep -q 'name: "libhardware_headers"' hardware/libhardware/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'

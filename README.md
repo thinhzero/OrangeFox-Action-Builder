@@ -208,6 +208,21 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   upstream build tool. No host tests, TestNG or dependency-injection libraries
   are added to recovery packages.
 
+- Retained `libhardware_headers` exports `libaudio_system_headers` and
+  `libbluetooth-types-header` for its non-recovery variants. Restore their real
+  AOSP definitions without changing libhardware's variant/exclusion rules:
+
+  | Project | Verified commit | Checkout scope |
+  | --- | --- | --- |
+  | `system/media` | `612d1707ddd53b341512a8de9b3255c314e7c0b2` | Root Blueprint/license/metadata and complete `audio` header/filegroup subtree |
+  | `system/bt` | `9827945fd41eb3c7940b5ce983e21757fdbae5f6` | Complete project, preserving original type library/test declarations, defaults, Soong plugin, generators and inputs |
+
+  Both use `android-12.1.0_r4`. The audio headers use retained `libcutils_headers`.
+  Bluetooth's original `types` Blueprint also declares libraries/tests using
+  project-wide defaults, so it is not rewritten as a header-only substitute.
+  Source restoration does not add audio/Bluetooth services or tests to recovery
+  packages, and does not prove a full native build or hardware compatibility.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.
