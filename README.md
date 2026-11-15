@@ -54,9 +54,15 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   `tests/unit/Android.bp:libnetworkstackutilsjni_deps`; the matching project is
   restored at `ae471a43f6198859028f3f987c72aa17ae890ff1` (same AOSP tag), including
   its actual JNI sources. NetworkStack is not added to recovery packages.
+  Retained Harmony JDWP tests also reference JUnit, which requires Hamcrest;
+  source projects `external/junit` and `external/hamcrest` are restored at
+  `7c5c0ba1f123304da6f14f9d34d83b89851ccda2` and
+  `b6b17dc33ec3cfffb9bc227e14c3042626c08f4e`, respectively (same AOSP tag).
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
-  `source-defaults-report.json` is retained with build diagnostics. This is **not
+  A separate scan reports library/tool reference candidates, with the same cap.
+  `source-defaults-report.json` and `source-libraries-report.json` are retained
+  with build diagnostics. These scans are **not
   Soong evaluation**: namespaces, generated modules, variants, types and dynamic
   Blueprint expressions are not resolved. It never suppresses modules, edits
   sources or enables missing-dependency bypasses; the strict build is authoritative.

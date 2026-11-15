@@ -150,6 +150,16 @@ jobs:
         grep -q 'name: "libnetworkstackutilsjni_deps"' packages/modules/NetworkStack/tests/unit/Android.bp
         [[ -f packages/modules/NetworkStack/tests/unit/jni/Android.bp ]]
         grep -q 'name: "framework-connectivity-test-defaults"' packages/modules/Connectivity/tests/common/Android.bp
+        # Retained Harmony JDWP tests depend on JUnit; JUnit statically includes
+        # Hamcrest. Restore both source projects, not jars or placeholder modules.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/junit external/junit
+        [[ "$(git -C external/junit rev-parse HEAD)" == 7c5c0ba1f123304da6f14f9d34d83b89851ccda2 ]]
+        grep -q 'name: "junit"' external/junit/Android.bp
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/hamcrest external/hamcrest
+        [[ "$(git -C external/hamcrest rev-parse HEAD)" == b6b17dc33ec3cfffb9bc227e14c3042626c08f4e ]]
+        grep -q 'name: "hamcrest"' external/hamcrest/hamcrest-core/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
@@ -159,6 +169,10 @@ jobs:
         python3 scripts/audit-defaults.py \
           --source-root "${GITHUB_WORKSPACE}/OrangeFox/fox_${MANIFEST_BRANCH}" \
           --report "${GITHUB_WORKSPACE}/source-defaults-report.json"
+        python3 scripts/audit-defaults.py \
+          --source-root "${GITHUB_WORKSPACE}/OrangeFox/fox_${MANIFEST_BRANCH}" \
+          --properties libs static_libs shared_libs header_libs whole_static_libs jni_libs tools plugins \
+          --report "${GITHUB_WORKSPACE}/source-libraries-report.json"
 
     - name: Building OrangeFox
       run: |
@@ -236,6 +250,7 @@ jobs:
         path: |
           build.log
           source-defaults-report.json
+          source-libraries-report.json
           OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/error.log
           OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/soong.log
           OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/verbose.log.gz

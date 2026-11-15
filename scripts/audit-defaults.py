@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report literal Blueprint defaults without changing or evaluating the build."""
+"""Report literal Blueprint references without changing or evaluating the build."""
 
 import argparse
 import json
@@ -16,10 +16,12 @@ MAX_FILE_BYTES = 16 * 1024 * 1024
 MAX_CANDIDATES = 200
 MAX_REFERENCES = 5
 SKIP_DIRS = {".git", ".repo", "out"}
+REFERENCE_PROPERTIES = ("defaults", "libs", "static_libs", "shared_libs", "header_libs",
+                        "whole_static_libs", "jni_libs", "tools", "plugins")
 
 
-def literals(text):
-    """Extract literal name properties and complete literal defaults lists only."""
+def literals(text, properties=("defaults",)):
+    """Extract literal names and complete literal reference lists only."""
     tokens = []
     line = 1
     for match in TOKEN.finditer(text):
@@ -29,7 +31,7 @@ def literals(text):
         line += value.count("\n")
     names, references, dynamic = set(), [], 0
     for index, (kind, value, line) in enumerate(tokens):
-        if kind != "word" or value not in ("name", "defaults"):
+        if kind != "word" or value not in ("name", *properties):
             continue
         tail = tokens[index + 1:index + 3]
         if len(tail) != 2 or tail[0][1] != ":":
@@ -65,7 +67,7 @@ def literals(text):
     return names, references, dynamic
 
 
-def audit(root):
+def audit(root, properties=("defaults",)):
     root = root.resolve()
     definitions, references, errors = set(), {}, []
     files, dynamic = 0, 0
@@ -84,23 +86,24 @@ def audit(root):
                 raise ValueError("symlink not inspected")
             if path.stat().st_size > MAX_FILE_BYTES:
                 raise ValueError("file exceeds inspection limit")
-            names, defaults, skipped = literals(path.read_text(encoding="utf-8"))
+            names, refs, skipped = literals(path.read_text(encoding="utf-8"), properties)
         except (OSError, ValueError):
             errors.append(relative)
             continue
         files += 1
         dynamic += skipped
         definitions.update(names)
-        for name, line in defaults:
+        for name, line in refs:
             references.setdefault(name, []).append({"file": relative, "line": line})
     missing = sorted(references.keys() - definitions)
     return {
         "scope": "Advisory literal-source scan, NOT Soong evaluation or dependency closure",
+        "reference_properties": list(properties),
         "limitations": ["Namespaces, visibility, types, variants and generated modules are not evaluated",
-                        "Variable/concatenated defaults expressions and non-Android.bp includes are not evaluated",
+                        "Variable/concatenated expressions and non-Android.bp includes are not evaluated",
                         "Literal name properties may overapproximate module definitions"],
         "files_scanned": files, "literal_names": len(definitions),
-        "dynamic_defaults_skipped": dynamic, "unreadable_files": errors[:MAX_CANDIDATES],
+        "dynamic_expressions_skipped": dynamic, "unreadable_files": errors[:MAX_CANDIDATES],
         "unreadable_file_count": len(errors), "candidate_count": len(missing),
         "candidates": [{"name": name, "references": references[name][:MAX_REFERENCES],
                         "reference_count": len(references[name])}
@@ -113,14 +116,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--properties", nargs="+", choices=REFERENCE_PROPERTIES, default=["defaults"])
     args = parser.parse_args()
     if not args.source_root.is_dir():
         parser.error("source root must be a directory")
-    report = audit(args.source_root)
+    report = audit(args.source_root, tuple(dict.fromkeys(args.properties)))
     args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(report["scope"])
     print(f"Scanned {report['files_scanned']} Android.bp files; "
-          f"{report['candidate_count']} literal defaults candidates without literal definitions")
+          f"{report['candidate_count']} literal reference candidates without literal definitions "
+          f"({', '.join(report['reference_properties'])})")
     for candidate in report["candidates"]:
         ref = candidate["references"][0]
         print(f"CANDIDATE {candidate['name']!r}: {ref['file']}:{ref['line']}")

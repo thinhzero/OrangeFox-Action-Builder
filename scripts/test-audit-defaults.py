@@ -45,6 +45,16 @@ class LiteralTests(unittest.TestCase):
         self.assertEqual(AUDIT.literals('/*\ncomment\n*/\ndefaults: [\n"absent",\n],')[1],
                          [("absent", 5)])
 
+    def test_library_references_are_opt_in(self):
+        text = 'java_library { name: "test", libs: ["junit"], static_libs: ["hamcrest"], }'
+        self.assertEqual(AUDIT.literals(text), ({"test"}, [], 0))
+        self.assertEqual(AUDIT.literals(text, ("libs", "static_libs")),
+                         ({"test"}, [("junit", 1), ("hamcrest", 1)], 0))
+
+    def test_library_expressions_skipped(self):
+        self.assertEqual(AUDIT.literals('libs: ["partial"] + dynamic,', ("libs",)),
+                         (set(), [], 1))
+
 
 class TreeTests(unittest.TestCase):
     def setUp(self):
@@ -103,6 +113,13 @@ class TreeTests(unittest.TestCase):
     def test_unreadable_input_is_advisory(self):
         self.write('Android.bp', '').write_bytes(b'\xff')
         self.assertEqual(AUDIT.audit(self.root)['unreadable_file_count'], 1)
+
+    def test_library_report_and_definitions(self):
+        self.write('a/Android.bp', 'java_library { libs: ["junit"], static_libs: ["hamcrest"], }')
+        self.write('b/Android.bp', 'java_library { name: "junit", }')
+        report = AUDIT.audit(self.root, ("libs", "static_libs"))
+        self.assertEqual(report['reference_properties'], ["libs", "static_libs"])
+        self.assertEqual([c['name'] for c in report['candidates']], ["hamcrest"])
 
 
 if __name__ == "__main__":
