@@ -123,6 +123,21 @@ jobs:
           packages/modules/NeuralNetworks
         [[ "$(git -C packages/modules/NeuralNetworks rev-parse HEAD)" == 987db53d74e02ab01abdb0db36eb8ccea00e2548 ]]
         grep -q 'name: "neuralnetworks_utils_defaults"' packages/modules/NeuralNetworks/common/Android.bp
+        # Framework test declarations inherit these root CTS defaults even for
+        # bootimage. Sparse checkout keeps the actual defaults and annotation
+        # library without introducing the complete CTS/platform test suites.
+        git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/cts cts
+        [[ "$(git -C cts rev-parse HEAD)" == 5c5a1cac99f23a61564c60be33f9274ff7fcd5fa ]]
+        git -C cts sparse-checkout set --no-cone /Android.bp
+        git -C cts checkout --detach HEAD
+        grep -q 'name: "cts_defaults"' cts/Android.bp
+        git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/platform_testing platform_testing
+        [[ "$(git -C platform_testing rev-parse HEAD)" == af7eaff31e0aed03c06f6bade385397d792f4008 ]]
+        git -C platform_testing sparse-checkout set --no-cone /libraries/annotations/
+        git -C platform_testing checkout --detach HEAD
+        grep -q 'name: "platform-test-annotations"' platform_testing/libraries/annotations/Android.bp
 
     - name: Building OrangeFox
       run: |

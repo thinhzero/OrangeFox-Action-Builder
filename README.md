@@ -44,6 +44,12 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   verified commit `987db53d74e02ab01abdb0db36eb8ccea00e2548`, because retained
   HAL utility declarations inherit `neuralnetworks_utils_defaults` from it.
   Restoring source definitions does not add NNAPI packages to the recovery.
+  Framework test declarations also need CTS defaults: sparse checkouts restore
+  only `cts/Android.bp` at `5c5a1cac99f23a61564c60be33f9274ff7fcd5fa` and
+  `platform_testing/libraries/annotations` at
+  `af7eaff31e0aed03c06f6bade385397d792f4008` (both at the same AOSP tag).
+  These are upstream definitions and Java sources, not dummy modules; complete
+  CTS/platform test suites are not checked out or added to the recovery.
 - Safety variables are sourced before lunch, when OrangeFox snapshots its build
   environment. Do not upload that environment snapshot: it may contain CI secrets.
 - The workflow validates the encoded boot ramdisk and the published image, rejects
