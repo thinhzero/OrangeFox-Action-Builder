@@ -129,6 +129,7 @@ jobs:
         # Framework test declarations inherit these root CTS defaults even for
         # bootimage. Sparse checkout keeps the actual defaults and annotation
         # library, plus the cts-tradefed harness used by ADB FastDeployHostTests.
+        # GkiInstallTest also references the original CTS host runner utilities.
         # Preserve its wrapper/resources/DynamicConfig, not unrelated CTS tests.
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/cts cts
@@ -141,6 +142,7 @@ jobs:
         /tools/cts-tradefed/DynamicConfig.xml
         /tools/cts-tradefed/OWNERS
         /tools/cts-tradefed/README
+        /hostsidetests/utils/
         CTS_HARNESS_PATHS
         git -C cts checkout --detach HEAD
         grep -q 'name: "cts_defaults"' cts/Android.bp
@@ -148,6 +150,9 @@ jobs:
         grep -q 'name: "cts-tradefed-harness"' cts/tools/cts-tradefed/Android.bp
         [[ -x cts/tools/cts-tradefed/etc/cts-tradefed && -d cts/tools/cts-tradefed/res ]]
         [[ -f cts/tools/cts-tradefed/DynamicConfig.xml ]]
+        grep -q 'name: "cts-host-utils"' cts/hostsidetests/utils/Android.bp
+        [[ -f cts/hostsidetests/utils/src/android/cts/host/utils/DeviceJUnit4Parameterized.java ]]
+        [[ -f cts/hostsidetests/utils/src/android/cts/host/utils/DeviceJUnit4ClassRunnerWithParameters.java ]]
         grep -q 'android.RegisterModuleType("tradefed_binary_host"' build/soong/tradefed/suite_harness/tradefed_binary.go
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/platform_testing platform_testing

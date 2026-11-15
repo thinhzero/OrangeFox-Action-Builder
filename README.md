@@ -56,6 +56,10 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   along with `OWNERS`/`README`; the separate harness tests are outside this checkout.
   The retained Soong `tradefed_binary_host` plugin generates suite metadata and
   adds the existing Tradefed imports below. Its load hook is not changed.
+  GKI's retained `GkiInstallTest` also references `cts-host-utils`: the same pinned
+  CTS checkout includes `hostsidetests/utils/` (the original Blueprint and two Java
+  runner sources). Its libraries are the already restored `cts-tradefed` and
+  `tradefed`; no GKI tests or kernel changes are added to the recovery.
   Tethering test declarations require NetworkStack's
   `tests/unit/Android.bp:libnetworkstackutilsjni_deps`; the matching project is
   restored at `ae471a43f6198859028f3f987c72aa17ae890ff1` (same AOSP tag), including
