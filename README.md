@@ -91,6 +91,17 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   | `jsr305` | `ef7ea7b4611582d4c3cd14b868694bab8604a670` |
   | `error_prone` | `aa48ec720e6665859f4442850b1988791df2af18` |
 
+- Retained framework/MediaProvider ErrorProne checks reference Auto Service's real
+  annotations and annotation processor. At the same AOSP tag, `external/auto` is
+  restored at `40f6e33309de080c50ade433c4a7fc08a7c9d853` with root package/license
+  metadata and complete `common`/`service` subtrees. The unrelated AutoValue and
+  AutoFactory declarations are not selected; no upstream Blueprint is edited.
+  `auto_common` requires existing Guava and `external/javapoet`, restored as a full
+  source project at `6458e0481b8e78a562805da73c016e8772755e31` (same AOSP tag).
+  The actual `AutoServiceProcessor` is retained; compiler checks are not disabled
+  or replaced with placeholder annotations/plugins. These are build dependencies,
+  not additions to recovery packages.
+
 - Metalava and retained fs_mgr host-test declarations also need Kotlin, Maven,
   Gradle and Tradefed modules. These upstream projects are restored at the same
   AOSP tag with the commits below. Kotlin includes its actual compiler and runtime;

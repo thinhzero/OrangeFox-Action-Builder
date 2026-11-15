@@ -210,6 +210,30 @@ jobs:
         grep -q 'name: "error_prone_annotations"' external/error_prone/Android.bp
         grep -q 'name: "soong-java-config-error_prone"' external/error_prone/soong/Android.bp
         [[ -f external/error_prone/error_prone/error_prone_annotations-2.4.0.jar ]]
+        # Retained framework/MediaProvider compiler checks use Auto Service.
+        # Keep its root license/package and complete common/service subtrees,
+        # without pulling unrelated AutoValue/AutoFactory processor projects.
+        git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/auto external/auto
+        [[ "$(git -C external/auto rev-parse HEAD)" == 40f6e33309de080c50ade433c4a7fc08a7c9d853 ]]
+        git -C external/auto sparse-checkout set --no-cone \
+          /Android.bp /LICENSE /METADATA /MODULE_LICENSE_APACHE2 /README.md /.gitignore /common/ /service/
+        git -C external/auto checkout --detach HEAD
+        grep -q 'name: "external_auto_license"' external/auto/Android.bp
+        grep -q 'name: "auto_common"' external/auto/common/Android.bp
+        grep -q 'name: "auto_service_annotations"' external/auto/service/Android.bp
+        grep -q 'name: "auto_service_plugin"' external/auto/service/Android.bp
+        grep -q 'processor_class: "com.google.auto.service.processor.AutoServiceProcessor"' external/auto/service/Android.bp
+        [[ -f external/auto/service/processor/src/main/java/com/google/auto/service/processor/AutoServiceProcessor.java ]]
+        [[ -f external/auto/LICENSE ]]
+        # auto_common depends on the original JavaPoet library and retained Guava.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/javapoet external/javapoet
+        [[ "$(git -C external/javapoet rev-parse HEAD)" == 6458e0481b8e78a562805da73c016e8772755e31 ]]
+        grep -q 'name: "javapoet"' external/javapoet/Android.bp
+        [[ -f external/javapoet/src/main/java/com/squareup/javapoet/JavaFile.java ]]
+        [[ -f external/javapoet/LICENSE.txt ]]
+        grep -q 'name: "guava"' external/guava/Android.bp
         # Metalava's Kotlin sources need the actual compiler as well as stdlib
         # modules. fs_mgr's retained host tests use the upstream Tradefed import.
         git clone --depth 1 --branch android-12.1.0_r4 \
