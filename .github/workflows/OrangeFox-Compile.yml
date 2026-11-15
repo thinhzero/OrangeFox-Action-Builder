@@ -143,6 +143,9 @@ jobs:
         /tools/cts-tradefed/OWNERS
         /tools/cts-tradefed/README
         /hostsidetests/utils/
+        /libs/install/
+        /libs/shim/
+        /hostsidetests/stagedinstall/
         CTS_HARNESS_PATHS
         git -C cts checkout --detach HEAD
         grep -q 'name: "cts_defaults"' cts/Android.bp
@@ -153,6 +156,43 @@ jobs:
         grep -q 'name: "cts-host-utils"' cts/hostsidetests/utils/Android.bp
         [[ -f cts/hostsidetests/utils/src/android/cts/host/utils/DeviceJUnit4Parameterized.java ]]
         [[ -f cts/hostsidetests/utils/src/android/cts/host/utils/DeviceJUnit4ClassRunnerWithParameters.java ]]
+        # Retained SDK Extensions/APEX host tests need the real install helper
+        # and its shim constants. Its unchanged Blueprint also declares device
+        # libraries/APK resources, including the staged-install APEX fixtures.
+        # Preserve those source/signing/resource inputs, not a host-only stub.
+        grep -q 'name: "cts-install-lib-host"' cts/libs/install/Android.bp
+        grep -q 'name: "cts-install-lib-java"' cts/libs/install/Android.bp
+        grep -q 'name: "cts-shim-host-lib"' cts/libs/shim/Android.bp
+        grep -q 'name: "cts-shim-lib"' cts/libs/shim/Android.bp
+        grep -q 'name: "cts-ec-p256"' cts/libs/install/testapp/signing/Android.bp
+        grep -q 'name: "StagedInstallTestApexV1"' cts/hostsidetests/stagedinstall/Android.bp
+        grep -q 'name: "StagedInstallTestApexV2"' cts/hostsidetests/stagedinstall/Android.bp
+        grep -q 'name: "StagedInstallTestApexV3"' cts/hostsidetests/stagedinstall/Android.bp
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'CTS_INSTALL_INPUTS'
+        cts/libs/install/AndroidManifest.xml
+        cts/libs/install/src/android/cts/install/lib/host/InstallUtilsHost.java
+        cts/libs/install/src/com/android/cts/install/lib/Install.java
+        cts/libs/install/testapp/Av1.xml
+        cts/libs/install/testapp/src/com/android/cts/install/lib/testapp/MainActivity.java
+        cts/libs/install/testapp/res_v1/values/values.xml
+        cts/libs/install/testapp/res_v2/values/values.xml
+        cts/libs/install/testapp/res_v3/values/values.xml
+        cts/libs/install/testapp/signing/ec-p256.pk8
+        cts/libs/install/testapp/signing/ec-p256.x509.pem
+        cts/libs/install/testapp/signing/ec-p256_2.pk8
+        cts/libs/install/testapp/signing/ec-p256_2.x509.pem
+        cts/libs/install/testapp/signing/ec-p256-por-1_2
+        cts/libs/shim/src/com/android/cts/shim/lib/ShimPackage.java
+        cts/hostsidetests/stagedinstall/app/AndroidManifest.xml
+        cts/hostsidetests/stagedinstall/testdata/apex/arm/com.android.apex.cts.shim.v1.apex
+        cts/hostsidetests/stagedinstall/testdata/apex/arm/com.android.apex.cts.shim.v2.apex
+        cts/hostsidetests/stagedinstall/testdata/apex/arm/com.android.apex.cts.shim.v3.apex
+        cts/hostsidetests/stagedinstall/testdata/apex/x86/com.android.apex.cts.shim.v1.apex
+        cts/hostsidetests/stagedinstall/testdata/apex/x86/com.android.apex.cts.shim.v2.apex
+        cts/hostsidetests/stagedinstall/testdata/apex/x86/com.android.apex.cts.shim.v3.apex
+        CTS_INSTALL_INPUTS
         grep -q 'android.RegisterModuleType("tradefed_binary_host"' build/soong/tradefed/suite_harness/tradefed_binary.go
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/platform_testing platform_testing

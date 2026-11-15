@@ -60,6 +60,15 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   CTS checkout includes `hostsidetests/utils/` (the original Blueprint and two Java
   runner sources). Its libraries are the already restored `cts-tradefed` and
   `tradefed`; no GKI tests or kernel changes are added to the recovery.
+  SDK Extensions/APEX host tests also need `cts-install-lib-host` and its
+  `cts-shim-host-lib` dependency. The same pinned CTS checkout retains complete
+  `libs/install/`, `libs/shim/` and `hostsidetests/stagedinstall/` subtrees. Their
+  unmodified Blueprints also declare device libraries, APKs and APEX resources,
+  so preserve all sources/manifests/resources, public CTS fixture signing keys,
+  lineage and staged-install test data rather than carving out a host-only
+  replacement. Existing CTS harness/utilities remain selected; no test packages,
+  fixture keys or APK/APEX data are added to the recovery image. Standalone host
+  compilation/simulated-device checks do not prove full CTS/Soong build or boot.
   Tethering test declarations require NetworkStack's
   `tests/unit/Android.bp:libnetworkstackutilsjni_deps`; the matching project is
   restored at `ae471a43f6198859028f3f987c72aa17ae890ff1` (same AOSP tag), including
