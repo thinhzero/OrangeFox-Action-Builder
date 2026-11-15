@@ -223,6 +223,18 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   Source restoration does not add audio/Bluetooth services or tests to recovery
   packages, and does not prove a full native build or hardware compatibility.
 
+- Retained `icu4j-tests` needs `junit-params`. Restore the complete
+  `external/junit-params` project from `android-12.1.0_r4`, pinned to
+  `fa8720eb57ec6d8fe8fdfd7c74e581f094fd9219`, keeping the original host/target
+  definitions, license, Android fixes/ignores, test sources, CSV resources and
+  test-only AssertJ 1.7.1 JAR (SHA256 checked). It uses the already restored JUnit;
+  no ICU declarations are changed and no test libraries are added to recovery.
+  Standalone compilation covers all 45 library and 39 test Java sources. Of 206
+  original test executions, one exact-message assertion expects pre-4.13 JUnit
+  text; retained JUnit adds an `InvalidTestClassError` prefix. That difference
+  and valid/invalid rule handling are checked separately without editing source
+  or adding ignores. These checks do not prove a full Soong/ICU build or boot.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.

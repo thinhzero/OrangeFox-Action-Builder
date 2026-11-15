@@ -556,6 +556,34 @@ jobs:
         HARDWARE_HEADER_INPUTS
         grep -q 'name: "libcutils_headers"' system/core/libcutils/Android.bp
         grep -q 'name: "libhardware_headers"' hardware/libhardware/Android.bp
+        # Retained ICU tests use JUnitParams. Keep its original host/target
+        # libraries, test declarations/resources and test-only AssertJ import;
+        # do not rewrite ICU tests or add these host tests to recovery packages.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/junit-params external/junit-params
+        [[ "$(git -C external/junit-params rev-parse HEAD)" == fa8720eb57ec6d8fe8fdfd7c74e581f094fd9219 ]]
+        grep -q 'name: "junit-params"' external/junit-params/Android.bp
+        grep -q 'name: "junit-params-host"' external/junit-params/Android.bp
+        grep -q 'name: "junit-params-test"' external/junit-params/Android.bp
+        grep -q 'name: "junit-params-assertj-core"' external/junit-params/Android.bp
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'JUNIT_PARAMS_INPUTS'
+        external/junit-params/LICENSE.txt
+        external/junit-params/README.google
+        external/junit-params/src/main/java/junitparams/JUnitParamsRunner.java
+        external/junit-params/src/main/java/junitparams/Parameters.java
+        external/junit-params/src/main/java/junitparams/internal/ParameterisedFrameworkMethod.java
+        external/junit-params/src/test/java/junitparams/ParametersReaderProvidersTest.java
+        external/junit-params/src/test/java/junitparams/SamplesOfUsageVerificationTest.java
+        external/junit-params/src/test/resources/test.csv
+        external/junit-params/src/test/resources/with_header.csv
+        external/junit-params/src/test/resources/with_special_chars.csv
+        external/junit-params/lib/assertj-core-1.7.1.jar
+        JUNIT_PARAMS_INPUTS
+        echo '577357960c48d52332a41e0c39c4ad3a40cfb11ae4ecc8b3e643c3eac5c40adf  external/junit-params/lib/assertj-core-1.7.1.jar' | sha256sum -c -
+        grep -q 'name: "junit"' external/junit/Android.bp
+        grep -q '"junit-params",' external/icu/icu4j/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
