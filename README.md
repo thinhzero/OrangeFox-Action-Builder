@@ -58,6 +58,23 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   source projects `external/junit` and `external/hamcrest` are restored at
   `7c5c0ba1f123304da6f14f9d34d83b89851ccda2` and
   `b6b17dc33ec3cfffb9bc227e14c3042626c08f4e`, respectively (same AOSP tag).
+- Retained `dx-docs` requires `droiddoc-templates-sdk` from Doclava. The profile
+  restores the complete Doclava project (templates and Java modules), together
+  with the following source dependencies at `android-12.1.0_r4`, verifying every
+  commit. ErrorProne includes its upstream JARs and Soong configuration plugin;
+  no compiler-check settings are overridden. These are build dependencies, not
+  additions to recovery packages.
+
+  | Project under `external/` | Verified commit |
+  | --- | --- |
+  | `doclava` | `0f582d0d69044f28b50aad2de59bd6f8673a5027` |
+  | `jsilver` | `3092867230f876bb6459261ceceac687ef58d9c5` |
+  | `guava` | `9b79d654ebb1a2adf1caafbaa7029c5252f74f1b` |
+  | `antlr` | `b3332f240724bb50d4387aca9a5ecbaf713df8d0` |
+  | `tagsoup` | `4c3e83b5676516de4ee40e61884f86020cbe44c1` |
+  | `jsr305` | `ef7ea7b4611582d4c3cd14b868694bab8604a670` |
+  | `error_prone` | `aa48ec720e6665859f4442850b1988791df2af18` |
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.

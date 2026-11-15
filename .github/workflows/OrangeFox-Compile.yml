@@ -160,6 +160,28 @@ jobs:
           https://android.googlesource.com/platform/external/hamcrest external/hamcrest
         [[ "$(git -C external/hamcrest rev-parse HEAD)" == b6b17dc33ec3cfffb9bc227e14c3042626c08f4e ]]
         grep -q 'name: "hamcrest"' external/hamcrest/hamcrest-core/Android.bp
+        # dx-docs needs Doclava's SDK templates. Its root Android.bp also declares
+        # Java libraries, so restore their real source dependency chain together.
+        # Keep ErrorProne's upstream JARs AND Soong plugin; do not stub annotations
+        # or alter compiler checks to get through dependency resolution.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/external/${project}" "external/${project}"
+          [[ "$(git -C "external/${project}" rev-parse HEAD)" == "$revision" ]]
+        done <<'DOCLAVA_PROJECTS'
+        doclava 0f582d0d69044f28b50aad2de59bd6f8673a5027
+        jsilver 3092867230f876bb6459261ceceac687ef58d9c5
+        guava 9b79d654ebb1a2adf1caafbaa7029c5252f74f1b
+        antlr b3332f240724bb50d4387aca9a5ecbaf713df8d0
+        tagsoup 4c3e83b5676516de4ee40e61884f86020cbe44c1
+        jsr305 ef7ea7b4611582d4c3cd14b868694bab8604a670
+        error_prone aa48ec720e6665859f4442850b1988791df2af18
+        DOCLAVA_PROJECTS
+        grep -q 'name: "droiddoc-templates-sdk"' external/doclava/Android.bp
+        [[ -d external/doclava/res/assets/templates-sdk ]]
+        grep -q 'name: "error_prone_annotations"' external/error_prone/Android.bp
+        grep -q 'name: "soong-java-config-error_prone"' external/error_prone/soong/Android.bp
+        [[ -f external/error_prone/error_prone/error_prone_annotations-2.4.0.jar ]]
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
