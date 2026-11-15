@@ -45,11 +45,17 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   HAL utility declarations inherit `neuralnetworks_utils_defaults` from it.
   Restoring source definitions does not add NNAPI packages to the recovery.
   Framework test declarations also need CTS defaults: sparse checkouts restore
-  only `cts/Android.bp` at `5c5a1cac99f23a61564c60be33f9274ff7fcd5fa` and
+  `cts/Android.bp` and the `tools/cts-tradefed` harness declarations/assets at
+  `5c5a1cac99f23a61564c60be33f9274ff7fcd5fa`, and
   `platform_testing/libraries/annotations` at
   `af7eaff31e0aed03c06f6bade385397d792f4008` (both at the same AOSP tag).
   These are upstream definitions and Java sources, not dummy modules; complete
   CTS/platform test suites are not checked out or added to the recovery.
+  ADB's retained `FastDeployHostTests` references `cts-tradefed`. Its unmodified
+  harness Blueprint, wrapper, resources and `DynamicConfig.xml` are preserved,
+  along with `OWNERS`/`README`; the separate harness tests are outside this checkout.
+  The retained Soong `tradefed_binary_host` plugin generates suite metadata and
+  adds the existing Tradefed imports below. Its load hook is not changed.
   Tethering test declarations require NetworkStack's
   `tests/unit/Android.bp:libnetworkstackutilsjni_deps`; the matching project is
   restored at `ae471a43f6198859028f3f987c72aa17ae890ff1` (same AOSP tag), including

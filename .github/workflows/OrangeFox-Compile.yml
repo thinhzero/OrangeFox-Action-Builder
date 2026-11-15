@@ -128,13 +128,27 @@ jobs:
         grep -q 'name: "neuralnetworks_utils_defaults"' packages/modules/NeuralNetworks/common/Android.bp
         # Framework test declarations inherit these root CTS defaults even for
         # bootimage. Sparse checkout keeps the actual defaults and annotation
-        # library without introducing the complete CTS/platform test suites.
+        # library, plus the cts-tradefed harness used by ADB FastDeployHostTests.
+        # Preserve its wrapper/resources/DynamicConfig, not unrelated CTS tests.
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/cts cts
         [[ "$(git -C cts rev-parse HEAD)" == 5c5a1cac99f23a61564c60be33f9274ff7fcd5fa ]]
-        git -C cts sparse-checkout set --no-cone /Android.bp
+        git -C cts sparse-checkout set --no-cone --stdin <<'CTS_HARNESS_PATHS'
+        /Android.bp
+        /tools/cts-tradefed/Android.bp
+        /tools/cts-tradefed/etc/
+        /tools/cts-tradefed/res/
+        /tools/cts-tradefed/DynamicConfig.xml
+        /tools/cts-tradefed/OWNERS
+        /tools/cts-tradefed/README
+        CTS_HARNESS_PATHS
         git -C cts checkout --detach HEAD
         grep -q 'name: "cts_defaults"' cts/Android.bp
+        grep -q 'name: "cts-tradefed"' cts/tools/cts-tradefed/Android.bp
+        grep -q 'name: "cts-tradefed-harness"' cts/tools/cts-tradefed/Android.bp
+        [[ -x cts/tools/cts-tradefed/etc/cts-tradefed && -d cts/tools/cts-tradefed/res ]]
+        [[ -f cts/tools/cts-tradefed/DynamicConfig.xml ]]
+        grep -q 'android.RegisterModuleType("tradefed_binary_host"' build/soong/tradefed/suite_harness/tradefed_binary.go
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/platform_testing platform_testing
         [[ "$(git -C platform_testing rev-parse HEAD)" == af7eaff31e0aed03c06f6bade385397d792f4008 ]]
@@ -194,6 +208,11 @@ jobs:
         [[ "$(git -C tools/tradefederation/prebuilts rev-parse HEAD)" == 2a5fd21caf0d161ef6fc2efec1fadf2f31986039 ]]
         grep -q 'name: "tradefed"' tools/tradefederation/prebuilts/test_harness/Android.bp
         [[ -f tools/tradefederation/prebuilts/filegroups/tradefed/tradefed.jar ]]
+        # cts-tradefed's explicit dependencies and Soong load-hook libraries
+        # are these existing upstream imports, not a new harness implementation.
+        for module in tradefed-test-framework loganalysis compatibility-host-util compatibility-tradefed; do
+          grep -q "name: \"${module}\"" tools/tradefederation/prebuilts/test_harness/Android.bp
+        done
         # Keep the complete Maven subtree, including robolectric.bp included by
         # its Android.bp, plus the root SDK API-version directory declaration
         # and hierarchyviewer's original NetBeans imports and license notice.
