@@ -195,16 +195,22 @@ jobs:
         grep -q 'name: "tradefed"' tools/tradefederation/prebuilts/test_harness/Android.bp
         [[ -f tools/tradefederation/prebuilts/filegroups/tradefed/tradefed.jar ]]
         # Keep the complete Maven subtree, including robolectric.bp included by
-        # its Android.bp, plus the root SDK API-version directory declaration.
+        # its Android.bp, plus the root SDK API-version directory declaration
+        # and hierarchyviewer's original NetBeans imports and license notice.
         # Other unrelated cloud-client/platform prebuilts are not checked out.
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/prebuilts/tools prebuilts/tools
         [[ "$(git -C prebuilts/tools rev-parse HEAD)" == 742ee2c4a94f04fb86ffbc5a72cb6eaa3e9c4ea0 ]]
         git -C prebuilts/tools sparse-checkout set --no-cone \
-          /Android.bp /METADATA /.gitignore /common/m2/ /common/api-versions/
+          /Android.bp /METADATA /.gitignore /common/m2/ /common/api-versions/ /common/netbeans-visual/
         git -C prebuilts/tools checkout --detach HEAD
         grep -q 'name: "metalava-tools-common-m2-deps"' prebuilts/tools/common/m2/Android.bp
         [[ -f prebuilts/tools/common/m2/robolectric.bp ]]
+        grep -q 'name: "org-openide-util"' prebuilts/tools/common/netbeans-visual/Android.bp
+        grep -q 'name: "org-netbeans-api-visual"' prebuilts/tools/common/netbeans-visual/Android.bp
+        [[ -f prebuilts/tools/common/netbeans-visual/org-openide-util.jar ]]
+        [[ -f prebuilts/tools/common/netbeans-visual/org-netbeans-api-visual.jar ]]
+        [[ -f prebuilts/tools/common/netbeans-visual/NOTICE ]]
         # The Gradle repository is much larger. Restore its unmodified root
         # import and every versioned artifact directory that import declares.
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
@@ -234,6 +240,34 @@ jobs:
         grep -q 'name: "asm-7.0"' prebuilts/misc/common/asm/Android.bp
         grep -q 'name: "platformprotos"' frameworks/base/ProtoLibraries.bp
         grep -q '"ProtoLibraries.bp"' frameworks/base/Android.bp
+        # Retained kernel proc-file and development host tests need these real
+        # Python libraries. Keep project-root licenses and nested declarations.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'PYTHON_VTS_PROJECTS'
+        external/python/parse_type c377f51ae22f7a96136d9f83b6f8aa2132dc03eb
+        external/ply 0463af9bd0afb0adf7803fd4066d90d163dbe7b1
+        external/python/pyfakefs 4a8b5a290814e51105ed0d3297296de0f3c75a9e
+        test/vts-testcase/vndk ea6b1eeb118f329ffdaef7120db5bf7adde90ae3
+        PYTHON_VTS_PROJECTS
+        grep -q 'name: "py-parse_type"' external/python/parse_type/parse_type/Android.bp
+        grep -q 'name: "py-ply"' external/ply/ply/Android.bp
+        grep -q 'name: "pyfakefs"' external/python/pyfakefs/pyfakefs/Android.bp
+        grep -q 'name: "vts_vndk_utils"' test/vts-testcase/vndk/Android.bp
+        # The original VNDK project's golden-data genrule references the ABI
+        # dump archive. Restore its full input tree, not an empty/dummy ZIP rule.
+        git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/prebuilts/abi-dumps/vndk prebuilts/abi-dumps/vndk
+        [[ "$(git -C prebuilts/abi-dumps/vndk rev-parse HEAD)" == f3cda30722da4ad96bc305d65367bab02c326380 ]]
+        git -C prebuilts/abi-dumps/vndk checkout --detach HEAD
+        grep -q 'name: "vndk_abi_dump_zip"' prebuilts/abi-dumps/vndk/Android.bp
+        [[ -n "$(find prebuilts/abi-dumps/vndk -type f -name '*.lsdump' -print -quit)" ]]
+        # Other VNDK data and Python dependencies come from retained projects.
+        grep -q 'name: "vndk_lib_lists"' build/make/target/product/gsi/Android.bp
+        grep -q 'name: "vndk_lib_extra_lists"' development/vndk/tools/definition-tool/datasets/Android.bp
+        grep -q 'name: "vndk_utils"' test/vts/utils/python/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'

@@ -86,12 +86,31 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   | --- | --- | --- |
   | `external/kotlinc` | `5a266bf3adea01dbf7c5453e240333446eeee8cc` | Complete project |
   | `tools/tradefederation/prebuilts` | `2a5fd21caf0d161ef6fc2efec1fadf2f31986039` | Complete project |
-  | `prebuilts/tools` | `742ee2c4a94f04fb86ffbc5a72cb6eaa3e9c4ea0` | Root declarations/metadata, complete `common/m2` (including `robolectric.bp`) and `common/api-versions` |
+  | `prebuilts/tools` | `742ee2c4a94f04fb86ffbc5a72cb6eaa3e9c4ea0` | Root declarations/metadata, complete `common/m2` (including `robolectric.bp`), `common/api-versions` and `common/netbeans-visual` |
   | `prebuilts/gradle-plugin` | `521e990cdd59af10203ca5cbacb34a89eddc4ed7` | Root declarations/metadata and all 13 versioned artifact directories declared by its Metalava import |
 
   Sparse checkout avoids unrelated large prebuilt trees; upstream build files are
   not edited and all files declared by the selected imports are preserved. No
   tests or documentation tools are added to recovery packages.
+
+- Retained kernel proc-file/development host tests require three Python libraries
+  and `vts_vndk_utils`. Their complete source projects are restored at the same
+  AOSP tag, including root licenses and nested Blueprint declarations. VNDK's
+  golden-data genrule also needs the original ABI dump project with all dump inputs;
+  the archive rule is not stubbed or supplied with an empty input tree.
+
+  | Project | Verified commit |
+  | --- | --- |
+  | `external/python/parse_type` | `c377f51ae22f7a96136d9f83b6f8aa2132dc03eb` |
+  | `external/ply` | `0463af9bd0afb0adf7803fd4066d90d163dbe7b1` |
+  | `external/python/pyfakefs` | `4a8b5a290814e51105ed0d3297296de0f3c75a9e` |
+  | `test/vts-testcase/vndk` | `ea6b1eeb118f329ffdaef7120db5bf7adde90ae3` |
+  | `prebuilts/abi-dumps/vndk` | `f3cda30722da4ad96bc305d65367bab02c326380` |
+
+  Other VNDK data filegroups/Python utilities are checked in retained projects.
+  The tools sparse checkout also preserves `hierarchyviewer`'s upstream NetBeans
+  JAR imports and `NOTICE` under `common/netbeans-visual`; its commit is unchanged.
+  These source/build dependencies do not add host tests or SDK tools to recovery.
 
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
