@@ -325,6 +325,36 @@ jobs:
         grep -q 'name: "vndk_lib_lists"' build/make/target/product/gsi/Android.bp
         grep -q 'name: "vndk_lib_extra_lists"' development/vndk/tools/definition-tool/datasets/Android.bp
         grep -q 'name: "vndk_utils"' test/vts/utils/python/Android.bp
+        # Retained audio-policy generators need the real PFW Python libraries,
+        # native connector/libraries and schemas declared by its root Blueprint.
+        # Keep the full source project, including Asio's original symlink target.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/parameter-framework external/parameter-framework
+        [[ "$(git -C external/parameter-framework rev-parse HEAD)" == 2adbdd6b6523793ed33e291b3915fe7f2a704eb5 ]]
+        for module in EddParser.py hostConfig.py PFWScriptGenerator.py PfwBaseTranslator.py \
+          domainGenerator.py domainGeneratorConnector libparameter libremote-processor libpfw_utility \
+          parameter_frameworks_configuration_schemas; do
+          grep -Fq "name: \"$module\"" external/parameter-framework/Android.bp
+        done
+        while read -r input; do
+          [[ -f "external/parameter-framework/$input" ]]
+        done <<'PFW_INPUTS'
+        COPYING.txt
+        NOTICE
+        upstream/tools/xmlGenerator/EddParser.py
+        upstream/tools/xmlGenerator/hostConfig.py
+        upstream/tools/xmlGenerator/PFWScriptGenerator.py
+        upstream/tools/xmlGenerator/PfwBaseTranslator.py
+        upstream/tools/xmlGenerator/domainGenerator.py
+        upstream/tools/xmlGenerator/domainGeneratorConnector.cpp
+        upstream/schemas/ParameterFrameworkConfiguration.xsd
+        upstream/schemas/ConfigurableDomains.xsd
+        support/android/asio/asio.hpp
+        asio/include/asio/io_service.hpp
+        PFW_INPUTS
+        [[ -L external/parameter-framework/asio ]]
+        [[ "$(readlink external/parameter-framework/asio)" == asio-1.10.6/ ]]
+        grep -q 'name: "libxml2"' external/libxml2/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'

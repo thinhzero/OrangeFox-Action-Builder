@@ -139,6 +139,16 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   JAR imports and `NOTICE` under `common/netbeans-visual`; its commit is unchanged.
   These source/build dependencies do not add host tests or SDK tools to recovery.
 
+- Retained audio-policy generators require `EddParser.py`, `hostConfig.py` and
+  `PFWScriptGenerator.py`, plus the latter's `PfwBaseTranslator.py` dependency.
+  The complete `external/parameter-framework` source project is restored at
+  `2adbdd6b6523793ed33e291b3915fe7f2a704eb5` (same AOSP tag). Its root Blueprint,
+  licenses, Python sources, native connector/libraries, XML schemas and original
+  `asio -> asio-1.10.6` symlink/headers are preserved. The native library's only
+  explicit external library dependency, `libxml2`, is checked in retained sources.
+  No audio-policy declarations are removed or replaced; restoring source definitions
+  does not add PFW tools, libraries or test programs to recovery packages.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.
