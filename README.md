@@ -223,7 +223,7 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
 
   | Project | Verified commit | Checkout scope |
   | --- | --- | --- |
-  | `system/media` | `612d1707ddd53b341512a8de9b3255c314e7c0b2` | Root Blueprint/license/metadata and complete `audio` header/filegroup subtree |
+  | `system/media` | `612d1707ddd53b341512a8de9b3255c314e7c0b2` | Root Blueprint/license/metadata and complete `audio` and `audio_utils` subtrees |
   | `system/bt` | `9827945fd41eb3c7940b5ce983e21757fdbae5f6` | Complete project, preserving original type library/test declarations, defaults, Soong plugin, generators and inputs |
 
   Both use `android-12.1.0_r4`. The audio headers use retained `libcutils_headers`.
@@ -243,6 +243,37 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   text; retained JUnit adds an `InvalidTestClassError` prefix. That difference
   and valid/invalid rule handling are checked separately without editing source
   or adding ignores. These checks do not prove a full Soong/ICU build or boot.
+
+- Retained headtracking, bsdiff, AV audio and signapk also need real native and
+  signing libraries. Restore complete projects at `android-12.1.0_r4`:
+
+  | Project | Verified commit |
+  | --- | --- |
+  | `external/eigen` | `c5a628e442d5a093b9f9d7179ac090738f4e093d` |
+  | `external/libdivsufsort` | `83ef56609ee34fcddb21571d377f58af34c14f64` |
+  | `tools/apksig` | `c2b69bcc45dfac3a745e5f2fefcec42594dddb6c` |
+  | `external/speex` | `6af04891263cf41d54b47121d604c168a0846c86` |
+  | `external/google-benchmark` | `770b190cd0052a180fe161abad59b4cbdfd99d46` |
+
+  Keep Eigen's original BLAS declarations and both divsufsort index widths.
+  Expand the same pinned `system/media` checkout with complete `audio_utils`,
+  including its tests/fuzzers/benchmarks. `libsndfile` here is its original
+  `tinysndfile.c`, not a separate external project. Speex supplies the Android
+  resampler dependency; Soong's `cc_benchmark` linker implicitly needs
+  `libgoogle-benchmark`. Original Conscrypt host/JNI/generator and audio
+  core/log/base/gtest dependencies remain retained, not replaced by stubs.
+  No test/benchmark packages are added to recovery and no missing-dependency
+  bypasses or upstream Blueprint edits are used.
+
+  Standalone apksig compilation/tests exercise the original signing/verifying
+  fixtures: 340 runs, two upstream assumptions and one documented Java 17
+  provider issue-code mismatch. The corrupt RSA APK is still rejected (provider
+  returns false instead of throwing); all three DSA/RSA/ECDSA bad-signature
+  fixtures are checked independently. No test edits or added ignores. Modern
+  host compilers also diagnose an old uninstantiated Eigen template; local
+  native smoke uses delayed template parsing, without changing Android build
+  flags/source. These host checks do not prove full Soong/ARM variants, the
+  apksigner Conscrypt JNI build, image boot or hardware compatibility.
 
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.

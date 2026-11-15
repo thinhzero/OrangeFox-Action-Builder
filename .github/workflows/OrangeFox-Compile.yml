@@ -562,13 +562,14 @@ jobs:
         grep -q 'name: "guava"' external/guava/Android.bp
         grep -q 'name: "soong_zip"' build/soong/zip/cmd/Android.bp
         # Retained libhardware exports the real audio and Bluetooth type headers.
-        # Audio needs only its complete original header/filegroup subtree and
-        # root license. Keep Bluetooth intact: its types Blueprint also declares
+        # Keep complete audio headers/utils and root license. Retained AV
+        # libraries/tests also need libaudioutils and its tiny libsndfile.
+        # Keep Bluetooth intact: its types Blueprint also declares
         # native libraries/tests using the project's defaults and Soong plugin.
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/system/media system/media
         [[ "$(git -C system/media rev-parse HEAD)" == 612d1707ddd53b341512a8de9b3255c314e7c0b2 ]]
-        git -C system/media sparse-checkout set --no-cone /Android.bp /NOTICE /OWNERS /audio/
+        git -C system/media sparse-checkout set --no-cone /Android.bp /NOTICE /OWNERS /audio/ /audio_utils/
         git -C system/media checkout --detach HEAD
         git clone --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/system/bt system/bt
@@ -624,6 +625,78 @@ jobs:
         echo '577357960c48d52332a41e0c39c4ad3a40cfb11ae4ecc8b3e643c3eac5c40adf  external/junit-params/lib/assertj-core-1.7.1.jar' | sha256sum -c -
         grep -q 'name: "junit"' external/junit/Android.bp
         grep -q '"junit-params",' external/icu/icu4j/Android.bp
+        # Retained headtracking, bsdiff, AV audio and signapk need real native /
+        # signing libraries. Preserve complete upstream projects/Blueprints;
+        # audio_utils keeps its tests/fuzzers/benchmarks. Soong's cc_benchmark
+        # linker adds libgoogle-benchmark even without a literal Blueprint ref.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'NATIVE_SIGNING_PROJECTS'
+        external/eigen c5a628e442d5a093b9f9d7179ac090738f4e093d
+        external/libdivsufsort 83ef56609ee34fcddb21571d377f58af34c14f64
+        tools/apksig c2b69bcc45dfac3a745e5f2fefcec42594dddb6c
+        external/speex 6af04891263cf41d54b47121d604c168a0846c86
+        external/google-benchmark 770b190cd0052a180fe161abad59b4cbdfd99d46
+        NATIVE_SIGNING_PROJECTS
+        grep -q 'name: "libeigen"' external/eigen/Android.bp
+        grep -q 'name: "libF77blas"' external/eigen/blas/Android.bp
+        grep -q 'name: "libdivsufsort"' external/libdivsufsort/Android.bp
+        grep -q 'name: "libdivsufsort64"' external/libdivsufsort/Android.bp
+        grep -q 'name: "apksig"' tools/apksig/Android.bp
+        grep -q 'name: "apksigner"' tools/apksig/Android.bp
+        grep -q 'name: "libspeexresampler"' external/speex/Android.bp
+        grep -q 'name: "libgoogle-benchmark"' external/google-benchmark/Android.bp
+        grep -q 'name: "libaudioutils"' system/media/audio_utils/Android.bp
+        grep -q 'name: "libsndfile"' system/media/audio_utils/Android.bp
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'NATIVE_SIGNING_INPUTS'
+        external/eigen/NOTICE
+        external/eigen/COPYING.MPL2
+        external/eigen/Eigen/Core
+        external/eigen/Eigen/Geometry
+        external/eigen/blas/double.cpp
+        external/libdivsufsort/LICENSE
+        external/libdivsufsort/android_include/config.h
+        external/libdivsufsort/android_include/divsufsort.h
+        external/libdivsufsort/android_include/divsufsort64.h
+        external/libdivsufsort/lib/divsufsort.c
+        tools/apksig/LICENSE
+        tools/apksig/src/main/java/com/android/apksig/ApkSigner.java
+        tools/apksig/src/main/java/com/android/apksig/ApkVerifier.java
+        tools/apksig/src/apksigner/java/com/android/apksigner/ApkSignerTool.java
+        tools/apksig/etc/apksigner
+        tools/apksig/src/apksigner/apksigner.mf
+        external/speex/COPYING
+        external/speex/include/speex/speex_resampler.h
+        external/speex/libspeexdsp/resample.c
+        external/google-benchmark/LICENSE
+        external/google-benchmark/include/benchmark/benchmark.h
+        external/google-benchmark/src/benchmark.cc
+        external/google-benchmark/test/basic_test.cc
+        system/media/audio_utils/Balance.cpp
+        system/media/audio_utils/resampler.c
+        system/media/audio_utils/echo_reference.c
+        system/media/audio_utils/tinysndfile.c
+        system/media/audio_utils/include/audio_utils/sndfile.h
+        system/media/audio_utils/tests/Android.bp
+        system/media/audio_utils/benchmarks/Android.bp
+        system/media/audio_utils/fuzz/Android.bp
+        NATIVE_SIGNING_INPUTS
+        # These real direct dependencies are already retained by the manifest.
+        # Keep Conscrypt's generator/JNI and its visibility rules unchanged.
+        grep -q 'name: "conscrypt-unbundled"' external/conscrypt/Android.bp
+        grep -q 'name: "libconscrypt_openjdk_jni"' external/conscrypt/Android.bp
+        [[ -f external/conscrypt/common/src/main/java/org/conscrypt/OpenSSLProvider.java ]]
+        [[ -f external/conscrypt/constants/src/gen/cpp/generate_constants.cc ]]
+        grep -q 'name: "libbase"' system/libbase/Android.bp
+        grep -q 'name: "liblog"' system/logging/liblog/Android.bp
+        grep -q 'name: "libcutils"' system/core/libcutils/Android.bp
+        grep -q 'name: "libutils"' system/core/libutils/Android.bp
+        grep -q 'name: "libutils_headers"' system/core/libutils/Android.bp
+        grep -q 'name: "libgmock"' external/googletest/googlemock/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
