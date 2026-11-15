@@ -72,9 +72,12 @@ jobs:
       
     - name: Build Environment
       run: |
+        set -euo pipefail
         sudo apt install aria2 -y
-        git clone https://gitlab.com/OrangeFox/misc/scripts.git -b master
-        cd scripts
+        # Keep upstream setup separate from this repository's scripts/ tools.
+        setup_dir="$(mktemp -d "${RUNNER_TEMP}/orangefox-setup.XXXXXX")"
+        git clone https://gitlab.com/OrangeFox/misc/scripts.git -b master "$setup_dir"
+        cd "$setup_dir"
         sudo bash setup/android_build_env.sh
       
     - name: Set-up Manifest
