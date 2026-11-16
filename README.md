@@ -363,6 +363,26 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   Sources and diagnostic flags are unchanged; none of these local checks proves
   Android compiler compatibility, Soong/ARM variants, final linking or boot.
 
+- Retained `libsimpleperf_etm_decoder` requires the complete case-sensitive
+  `external/OpenCSD` project at `bec745a24a3c9657ae5726e7b307760e69bdc288`
+  from `android-12.1.0_r4`. Keep the upstream private/default and explicit
+  CTS/simpleperf consumer visibility, exception/RTTI flags, source globs,
+  BSD/GPL license metadata, C API, offline snapshots/tests and `TEST_MAPPING`.
+  The workflow checks the pin, library/license/consumer declarations and
+  representative inputs; no new tests/tools are installed into recovery and
+  no perf or device trace collection is run.
+
+  Local auditing checks all 737 tracked files and the unchanged Blueprint;
+  36 actual workflow guard cases reject wrong pins/URLs/branches/modules or
+  missing source/header/license/test/snapshot/consumer inputs. All 42 original
+  Blueprint-selected C++ sources compile on Clang 23, but a whole-archive link
+  **fails**: the original Blueprint omits `decoder/source/ete/trc_cmp_cfg_ete.cpp`,
+  leaving `ETEConfig::ETEConfig(const ocsd_ete_cfg*)` unresolved. The upstream
+  Linux Makefile does include ETE; the Android Blueprint is not patched here.
+  This is a recorded original input/link limitation, not a passing library
+  build or a proven host-only incompatibility. No C API/offline test, CTS,
+  simpleperf integration, Soong/ARM final link or boot result is claimed.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.

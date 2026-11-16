@@ -950,6 +950,47 @@ jobs:
         system/server_configurable_flags/disaster_recovery/disaster_recovery.cc
         system/server_configurable_flags/disaster_recovery/flags_health_check.rc
         ART_MIDI_INPUTS
+        # Retained simpleperf ETM decoding requires the real OpenCSD library.
+        # Keep original private/consumer visibility, exceptions/RTTI, source
+        # globs, licenses and offline snapshots/tests; no perf/device tracing.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/OpenCSD external/OpenCSD
+        [[ "$(git -C external/OpenCSD rev-parse HEAD)" == bec745a24a3c9657ae5726e7b307760e69bdc288 ]]
+        grep -q 'name: "external_OpenCSD_license"' external/OpenCSD/Android.bp
+        grep -q 'name: "libopencsd_decoder"' external/OpenCSD/Android.bp
+        grep -q 'name: "libsimpleperf_etm_decoder"' system/extras/simpleperf/Android.bp
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'OPENCSD_INPUTS'
+        external/OpenCSD/LICENSE
+        external/OpenCSD/MODULE_LICENSE_BSD
+        external/OpenCSD/TEST_MAPPING
+        external/OpenCSD/decoder/include/opencsd.h
+        external/OpenCSD/decoder/include/opencsd/etmv3/trc_pkt_decode_etmv3.h
+        external/OpenCSD/decoder/include/opencsd/etmv4/trc_pkt_decode_etmv4i.h
+        external/OpenCSD/decoder/include/opencsd/ete/trc_dcd_mngr_ete.h
+        external/OpenCSD/decoder/include/opencsd/ptm/trc_pkt_decode_ptm.h
+        external/OpenCSD/decoder/include/opencsd/stm/trc_pkt_decode_stm.h
+        external/OpenCSD/decoder/include/opencsd/c_api/opencsd_c_api.h
+        external/OpenCSD/decoder/source/ocsd_dcd_tree.cpp
+        external/OpenCSD/decoder/source/etmv3/trc_pkt_decode_etmv3.cpp
+        external/OpenCSD/decoder/source/etmv4/trc_pkt_decode_etmv4i.cpp
+        external/OpenCSD/decoder/source/ete/trc_cmp_cfg_ete.cpp
+        external/OpenCSD/decoder/source/ptm/trc_pkt_decode_ptm.cpp
+        external/OpenCSD/decoder/source/stm/trc_pkt_decode_stm.cpp
+        external/OpenCSD/decoder/source/i_dec/trc_i_decode.cpp
+        external/OpenCSD/decoder/source/mem_acc/trc_mem_acc_file.cpp
+        external/OpenCSD/decoder/source/pkt_printers/trc_print_fact.cpp
+        external/OpenCSD/decoder/source/c_api/ocsd_c_api.cpp
+        external/OpenCSD/decoder/build/linux/ref_trace_decode_lib/makefile
+        external/OpenCSD/decoder/tests/source/c_api_pkt_print_test.c
+        external/OpenCSD/decoder/tests/source/trc_pkt_lister.cpp
+        external/OpenCSD/decoder/tests/run_pkt_decode_tests.bash
+        external/OpenCSD/decoder/tests/snapshots/juno_r1_1/snapshot.ini
+        external/OpenCSD/decoder/tests/snapshots/juno_r1_1/cstrace.bin
+        external/OpenCSD/decoder/tests/snapshots/TC2/snapshot.ini
+        external/OpenCSD/decoder/tests/snapshots/TC2/cstrace.bin
+        OPENCSD_INPUTS
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
