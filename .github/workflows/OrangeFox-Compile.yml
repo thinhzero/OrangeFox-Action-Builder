@@ -1465,6 +1465,13 @@ jobs:
         grep -q 'name: "devicepolicyprotosnano"' frameworks/proto_logging/stats/enums/stats/devicepolicy/Android.bp
         grep -q 'name: "PlatformProperties"' system/libsysprop/srcs/Android.bp
 
+        # libopenjdk retains the reference floating-point math implementation.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/fdlibm external/fdlibm
+        [[ "$(git -C external/fdlibm rev-parse HEAD)" == 19a89b7a083dc38384446f88ca29c6b09a45db62 ]]
+        grep -q 'name: "libfdlibm"' external/fdlibm/Android.bp
+        test -s external/fdlibm/e_pow.c
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
