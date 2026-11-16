@@ -103,8 +103,9 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
 - Retained framework/MediaProvider ErrorProne checks reference Auto Service's real
   annotations and annotation processor. At the same AOSP tag, `external/auto` is
   restored at `40f6e33309de080c50ade433c4a7fc08a7c9d853` with root package/license
-  metadata and complete `common`/`service` subtrees. The unrelated AutoValue and
-  AutoFactory declarations are not selected; no upstream Blueprint is edited.
+  metadata and complete `common`/`service` subtrees. OpenCensus also requires
+  complete `value` and `android-annotation-stubs` subtrees from that same pin;
+  unrelated AutoFactory remains unselected. No upstream Blueprint is edited.
   `auto_common` requires existing Guava and `external/javapoet`, restored as a full
   source project at `6458e0481b8e78a562805da73c016e8772755e31` (same AOSP tag).
   The actual `AutoServiceProcessor` is retained; compiler checks are not disabled
@@ -274,6 +275,55 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   native smoke uses delayed template parsing, without changing Android build
   flags/source. These host checks do not prove full Soong/ARM variants, the
   apksigner Conscrypt JNI build, image boot or hardware compatibility.
+
+- Retained Bluetooth Rust/native declarations and host tools require another
+  52 complete source projects from `android-12.1.0_r4`: 43 Rust crate projects
+  and the nine projects below. Every commit is checked by the workflow's
+  `RUST_NATIVE_PROJECTS` table. Keep original nested Blueprints, licenses,
+  proc macros, generator inputs, tests, fuzzers and benchmarks; do not substitute
+  Cargo/Maven downloads or trim upstream declarations to hide missing modules.
+
+  | Project | Verified commit |
+  | --- | --- |
+  | `external/opencensus-java` | `19de7b296c7c1b6c4563fab8f22b5c6f15d86498` |
+  | `external/libusb` | `b103c6be096fc0f1b0114188430e3ff5d39fdc35` |
+  | `external/flatbuffers` | `04d4e06804470e451b7f67d1c07c614a66f5e03b` |
+  | `external/python/pybind11` | `960c6f3b4ca0b7ac3d6178bd76cbcb7687ad5173` |
+  | `external/nanopb-c` | `2bbb09319b1aa6bd55791ccb19caf822b75de0c2` |
+  | `external/rust/cxx` | `e21664011d153978e59171e636aa8520a4153440` |
+  | `system/testing/gtest_extras` | `95cc749048a53521688b68ee1d0b34c5db8be4c3` |
+  | `tools/dexter` | `093604d5f4ac95f1e63296014483325e8cf063a7` |
+  | `external/escapevelocity` | `b76828a75424a8cc000192440488f4f26966dd59` |
+
+  The crate set covers bytes, numeric derives, paste, serde/JSON, futures,
+  Tokio, parking_lot, protobuf, grpcio and their explicit transitive crates,
+  macros and CXX diagnostic dependencies. Original CXX bridge generator/demo,
+  grpc bindgen/native wrapper and generated `OUT_DIR` inputs are preserved.
+  Libusb/FlatBuffers retain their **upstream** empty root `Android.mk` sentinels
+  that prevent recursive discovery of NDK sample Makefiles; these are not local
+  placeholder modules. Nanopb is the actual `external/nanopb-c` project.
+
+  The same pinned CTS checkout also includes complete `libs/json/` for
+  `jsonlib`, without dropping install/shim/staged-install or harness scopes.
+  OpenCensus uses the original AutoValue processor and EscapeVelocity sources;
+  retained grpc Context, native gRPC and Python protobuf declarations are
+  checked rather than replaced. No host tools/tests are added to recovery.
+
+  Local input auditing checks 9,540 selected tracked files and 74 unchanged
+  Blueprints across these restores and the expanded CTS/Auto scopes. Standalone
+  Java compilation runs the real AutoValue processor to generate OpenCensus
+  classes and exercises CTS JSON streaming. Slicer/Dexter matches 102 original
+  golden outputs under ASAN; nanopb compiles four configurations and libusb's
+  ten Linux sources compile **without running USB APIs**. Nanopb's Python 2
+  generator/example runtime and full Android/native linking remain untested.
+
+  Host incompatibilities are recorded, not patched away: modern Clang rejects
+  FlatBuffers' original deleted copy assignment at `flatbuffers.h:1875`;
+  stable Rust 1.99 cannot compile the retained proc-macro2's old nightly API,
+  and slab's original deny-warnings catches a newer lifetime lint. Thirty-three
+  selected Rust modules compile locally with literal Blueprint flags/features;
+  this is not a full Rust/Soong build, grpc bindgen or CXX final-link result.
+  None of these standalone checks proves Soong closure, ARM variants or boot.
 
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.

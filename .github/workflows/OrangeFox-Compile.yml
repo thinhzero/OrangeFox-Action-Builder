@@ -146,6 +146,7 @@ jobs:
         /libs/install/
         /libs/shim/
         /hostsidetests/stagedinstall/
+        /libs/json/
         CTS_HARNESS_PATHS
         git -C cts checkout --detach HEAD
         grep -q 'name: "cts_defaults"' cts/Android.bp
@@ -251,13 +252,14 @@ jobs:
         grep -q 'name: "soong-java-config-error_prone"' external/error_prone/soong/Android.bp
         [[ -f external/error_prone/error_prone/error_prone_annotations-2.4.0.jar ]]
         # Retained framework/MediaProvider compiler checks use Auto Service.
-        # Keep its root license/package and complete common/service subtrees,
-        # without pulling unrelated AutoValue/AutoFactory processor projects.
+        # Keep its root license/package and complete common/service subtrees.
+        # OpenCensus also needs the original AutoValue processor and its Android
+        # annotation inputs; unrelated AutoFactory remains outside the checkout.
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/external/auto external/auto
         [[ "$(git -C external/auto rev-parse HEAD)" == 40f6e33309de080c50ade433c4a7fc08a7c9d853 ]]
         git -C external/auto sparse-checkout set --no-cone \
-          /Android.bp /LICENSE /METADATA /MODULE_LICENSE_APACHE2 /README.md /.gitignore /common/ /service/
+          /Android.bp /LICENSE /METADATA /MODULE_LICENSE_APACHE2 /README.md /.gitignore /common/ /service/ /value/ /android-annotation-stubs/
         git -C external/auto checkout --detach HEAD
         grep -q 'name: "external_auto_license"' external/auto/Android.bp
         grep -q 'name: "auto_common"' external/auto/common/Android.bp
@@ -697,6 +699,148 @@ jobs:
         grep -q 'name: "libutils"' system/core/libutils/Android.bp
         grep -q 'name: "libutils_headers"' system/core/libutils/Android.bp
         grep -q 'name: "libgmock"' external/googletest/googlemock/Android.bp
+        # Retained Bluetooth Rust/native modules and host tools require these
+        # full upstream projects, including transitive crates, proc macros,
+        # generated-code inputs, original tests and licenses. Do not run Cargo
+        # resolution, delete tests or allow missing dependencies to bypass Soong.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'RUST_NATIVE_PROJECTS'
+        external/opencensus-java 19de7b296c7c1b6c4563fab8f22b5c6f15d86498
+        external/libusb b103c6be096fc0f1b0114188430e3ff5d39fdc35
+        external/flatbuffers 04d4e06804470e451b7f67d1c07c614a66f5e03b
+        external/python/pybind11 960c6f3b4ca0b7ac3d6178bd76cbcb7687ad5173
+        external/nanopb-c 2bbb09319b1aa6bd55791ccb19caf822b75de0c2
+        external/rust/cxx e21664011d153978e59171e636aa8520a4153440
+        system/testing/gtest_extras 95cc749048a53521688b68ee1d0b34c5db8be4c3
+        tools/dexter 093604d5f4ac95f1e63296014483325e8cf063a7
+        external/rust/crates/serde_json 51217caa9538676e7915bfabcc4ea1976a1c6013
+        external/rust/crates/futures 59f526639defd139b9d2f52c2739cf5f40b0f08e
+        external/rust/crates/tokio 1402fa9f5141ff1eaf9ac083b70f5c9390da02d9
+        external/rust/crates/bytes 69181530e77d7251fc79dcce0fb90c82012bb754
+        external/rust/crates/num-traits a53d5188633b74f59868a0429cdcb6779a520296
+        external/rust/crates/num-derive 1b3a5204cc5f10c7156fd8fbcd8957ecbd206255
+        external/rust/crates/paste 401972fedb60820a736a51805fc558bbddca280a
+        external/rust/crates/grpcio dd3964ccf8bc6c5cfeb51d8c80843379cbe8423d
+        external/rust/crates/itoa 52806fb8b0331215842ccee4e8646d4cb99048fa
+        external/rust/crates/ryu 2ab1c65dcc60e2a261ba30ee0032997056dc67e5
+        external/rust/crates/serde 4269064736b858f5caaf2fa60937d8a9a0d1908b
+        external/rust/crates/futures-channel 3c58c658ceba1a9d965e4aff35272fa68834528d
+        external/rust/crates/futures-core db60ebe631225798732237c76f0780b1ff7e0eea
+        external/rust/crates/futures-executor cda3331b583e5a58442e8bc3bdd33a6e7ae59a04
+        external/rust/crates/futures-io 28895b8a13b73177f5228a80201228ba3e8696c8
+        external/rust/crates/futures-sink 829a9652ae4687388747d2a6043053f9b274be74
+        external/rust/crates/futures-task d31222d36b445ed60cc173d9dbf416f2242097d2
+        external/rust/crates/futures-util be79e2e202ffe478c0aa8cdd48bcb786f63feec9
+        external/rust/crates/async-stream b8686a09a4c46a6be04e0a5a22faa7144f0f2514
+        external/rust/crates/mio 336960c8c61bf1254fae2b4926d69a320c888934
+        external/rust/crates/num_cpus 00a5869dd63fa4aa147792e401525de2e0ca5085
+        external/rust/crates/pin-project-lite 3b618083c2407192490c182bbe98a655dc021618
+        external/rust/crates/tokio-macros 13c415b10f2389cc4e68e86aa57c08ff70ca01c5
+        external/rust/crates/tokio-stream 1218e27ee46bf77fed6bd80dbf66fc25c6b24fc8
+        external/rust/crates/tokio-test 14e182e8feb4d970f6be201bc3245fdb6ebf3a87
+        external/rust/crates/grpcio-sys 54ae4c60107b7503f9058311ad6231726c9b7b83
+        external/rust/crates/parking_lot 8243e8edc0cc68bc24968527ccc471e9cf778c69
+        external/rust/crates/protobuf 852452cb1d57871e4e736abc50628d9c8794c95e
+        external/rust/crates/codespan-reporting e8421715e7e9d7ba6298de3c14cd245be6f2e2d2
+        external/rust/crates/serde_derive f87a8544a56fcb48f81b18d10ed68b870e55d851
+        external/rust/crates/futures-macro fdf5d38a19c4d6d2bc86a39375d39239b5b90788
+        external/rust/crates/pin-utils 14c33453abb3bb905a89e53629f5a47a731eb6f2
+        external/rust/crates/proc-macro-hack 14fb35ed210cf96b470306894f52cc9c679f9db3
+        external/rust/crates/proc-macro-nested b5af54e6572152963076427cd23bfa8909b9a0cb
+        external/rust/crates/slab 77344e3ed914812efd564f16ac80a16f99d1bfe9
+        external/rust/crates/async-stream-impl edeb9d414a8c961e22cae57f4e41d06c2555a18c
+        external/rust/crates/libz-sys 29d191c17472011ac7b83e0ede4f6b7a671658a3
+        external/rust/crates/instant 401a40aa1441255da71b01f325ba0ca7fa7c3932
+        external/rust/crates/lock_api cc6587e280c2840df80753402034864f5245c100
+        external/rust/crates/parking_lot_core 3895199b24120319c2ae20624c2f7b7240d4226a
+        external/rust/crates/scopeguard 4f20c4a8520acaefa9183a7ac370aebbd6bc1169
+        external/escapevelocity b76828a75424a8cc000192440488f4f26966dd59
+        external/rust/crates/termcolor ab4f7550a493b7f5ee9a9bf83caefd3d44fd1f47
+        external/rust/crates/unicode-width 407d8fc2a81358fdefea4b4f797e081adc034a89
+        RUST_NATIVE_PROJECTS
+        while read -r module blueprint; do
+          grep -q "name: \"${module}\"" "$blueprint"
+        done <<'RUST_NATIVE_MODULES'
+        libbytes external/rust/crates/bytes/Android.bp
+        libcxx external/rust/cxx/Android.bp
+        cxxbridge external/rust/cxx/gen/cmd/Android.bp
+        libcxxbridge_macro external/rust/cxx/macro/Android.bp
+        libflatbuffers-cpp external/flatbuffers/Android.bp
+        libfutures external/rust/crates/futures/Android.bp
+        libgrpcio external/rust/crates/grpcio/Android.bp
+        libgrpcio_sys external/rust/crates/grpcio-sys/Android.bp
+        libgrpc_bindgen external/rust/crates/grpcio-sys/Android.bp
+        libgtest_isolated system/testing/gtest_extras/Android.bp
+        libnum_derive external/rust/crates/num-derive/Android.bp
+        libnum_traits external/rust/crates/num-traits/Android.bp
+        libpaste external/rust/crates/paste/Android.bp
+        libprotobuf-c-nano external/nanopb-c/Android.bp
+        protoc-gen-nanopb external/nanopb-c/generator/Android.bp
+        libserde_json external/rust/crates/serde_json/Android.bp
+        libtokio external/rust/crates/tokio/Android.bp
+        libusb external/libusb/Android.bp
+        opencensus-java-api external/opencensus-java/api/Android.bp
+        opencensus-java-contrib-grpc-metrics external/opencensus-java/contrib/grpc_metrics/Android.bp
+        pybind11_headers external/python/pybind11/Android.bp
+        slicer tools/dexter/slicer/Android.bp
+        jsonlib cts/libs/json/Android.bp
+        auto_value_plugin external/auto/value/Android.bp
+        auto_value_annotations external/auto/value/Android.bp
+        auto_android_annotation_stubs external/auto/android-annotation-stubs/Android.bp
+        escapevelocity external/escapevelocity/Android.bp
+        grpc-java-context external/grpc-grpc-java/context/Android.bp
+        libgrpc++ external/grpc-grpc/Android.bp
+        libprotobuf-python external/protobuf/Android.bp
+        RUST_NATIVE_MODULES
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'RUST_NATIVE_INPUTS'
+        external/rust/cxx/LICENSE-APACHE
+        external/rust/cxx/LICENSE-MIT
+        external/rust/cxx/src/cxx.cc
+        external/rust/cxx/include/cxx.h
+        external/rust/cxx/gen/cmd/src/main.rs
+        external/rust/cxx/macro/src/lib.rs
+        external/rust/crates/grpcio-sys/grpc_wrap.cc
+        external/rust/crates/grpcio-sys/android/bindgen_wrapper.hpp
+        external/rust/crates/proc-macro-nested/out/count.rs
+        external/rust/crates/protobuf/out/version.rs
+        external/rust/crates/tokio/tests/rt_threaded.rs
+        external/rust/crates/serde_derive/src/lib.rs
+        external/libusb/COPYING
+        external/libusb/NOTICE
+        external/libusb/Android.mk
+        external/libusb/libusb/os/linux_usbfs.c
+        external/libusb/include/libusb/libusb.h
+        external/flatbuffers/LICENSE.txt
+        external/flatbuffers/Android.mk
+        external/flatbuffers/src/idl_parser.cpp
+        external/flatbuffers/tests/test.cpp
+        external/python/pybind11/LICENSE
+        external/python/pybind11/include/pybind11/pybind11.h
+        external/nanopb-c/LICENSE.txt
+        external/nanopb-c/pb_encode.c
+        external/nanopb-c/pb_decode.c
+        external/nanopb-c/generator/nanopb_generator.py
+        external/nanopb-c/generator/proto/nanopb.proto
+        external/opencensus-java/LICENSE
+        external/opencensus-java/api/src/main/java/io/opencensus/trace/Span.java
+        external/auto/value/src/main/java/com/google/auto/value/processor/AutoValueProcessor.java
+        external/auto/value/src/main/java/com/google/auto/value/processor/autovalue.vm
+        external/auto/android-annotation-stubs/src/net/ltgt/gradle/incap/IncrementalAnnotationProcessor.java
+        external/escapevelocity/LICENSE
+        external/escapevelocity/src/main/java/com/google/escapevelocity/Template.java
+        system/testing/gtest_extras/Isolate.cpp
+        system/testing/gtest_extras/include/gtest_extras/IsolateMain.h
+        tools/dexter/slicer/reader.cc
+        tools/dexter/slicer/export/slicer/reader.h
+        tools/dexter/testdata/hello.dex
+        cts/libs/json/src/com/android/json/stream/JsonReader.java
+        cts/libs/json/src/com/android/json/stream/JsonWriter.java
+        RUST_NATIVE_INPUTS
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
