@@ -1432,6 +1432,13 @@ jobs:
         sqlite-jdbc external/javasqlite/Android.bp
         CI43_MODULES
 
+        # Native vkjson's NDK variant needs the original Vulkan header provider.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/vulkan-headers external/vulkan-headers
+        [[ "$(git -C external/vulkan-headers rev-parse HEAD)" == 612952c8741b9ea3abaaf327e2b231f8038cf7ae ]]
+        grep -q 'name: "vulkan_headers"' external/vulkan-headers/Android.bp
+        test -s external/vulkan-headers/include/vulkan/vulkan_core.h
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
