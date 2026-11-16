@@ -280,12 +280,12 @@ jobs:
         # Retained framework/MediaProvider compiler checks use Auto Service.
         # Keep its root license/package and complete common/service subtrees.
         # OpenCensus also needs the original AutoValue processor and its Android
-        # annotation inputs; unrelated AutoFactory remains outside the checkout.
+        # annotation inputs; Caliper's Dagger compiler also needs AutoFactory.
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/external/auto external/auto
         [[ "$(git -C external/auto rev-parse HEAD)" == 40f6e33309de080c50ade433c4a7fc08a7c9d853 ]]
         git -C external/auto sparse-checkout set --no-cone \
-          /Android.bp /LICENSE /METADATA /MODULE_LICENSE_APACHE2 /README.md /.gitignore /common/ /service/ /value/ /android-annotation-stubs/
+          /Android.bp /LICENSE /METADATA /MODULE_LICENSE_APACHE2 /README.md /.gitignore /common/ /service/ /value/ /factory/ /android-annotation-stubs/
         git -C external/auto checkout --detach HEAD
         grep -q 'name: "external_auto_license"' external/auto/Android.bp
         grep -q 'name: "auto_common"' external/auto/common/Android.bp
@@ -1344,6 +1344,31 @@ jobs:
         libnanohttpd external/nanohttpd/Android.bp
         mockito-target-extended-minus-junit4 external/dexmaker/Android.bp
         CI38_MODULES
+
+        # Conscrypt benchmark declarations need Caliper; its host compiler path
+        # also needs Dagger, Commons Math, Java Format and Kotlin metadata.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'CI40_PROJECTS'
+        external/caliper c531cf7b5e51975b779ed461b926a05de91afb80
+        external/dagger2 18761281ab659492ade7a78a8b0ff5c81c8cee40
+        external/apache-commons-math 747555d98f8709cea8bee699cc86b278f1c9f598
+        external/google-java-format c0e9894d003545b4b31b6373c1aa4e9a447b6226
+        external/kotlinx.metadata f30142f39a5cca983813018a10873ffab68b985d
+        CI40_PROJECTS
+        while read -r module blueprint; do
+          grep -Eq "name:[[:space:]]*\"${module}\"" "$blueprint"
+        done <<'CI40_MODULES'
+        caliper-api-target external/caliper/Android.bp
+        caliper-prebuilts external/caliper/Android.bp
+        dagger2-compiler external/dagger2/Android.bp
+        apache-commons-math external/apache-commons-math/Android.bp
+        google_java_format external/google-java-format/Android.bp
+        kotlinx_metadata_jvm external/kotlinx.metadata/Android.bp
+        auto_factory_plugin external/auto/factory/Android.bp
+        CI40_MODULES
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
