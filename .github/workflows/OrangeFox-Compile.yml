@@ -841,6 +841,115 @@ jobs:
         cts/libs/json/src/com/android/json/stream/JsonReader.java
         cts/libs/json/src/com/android/json/stream/JsonWriter.java
         RUST_NATIVE_INPUTS
+        # Retained ART disassembly, USB accessory host tests, installd and MIDI
+        # need these whole upstream projects. Preserve VIXL's original ART-only
+        # visibility/codegen/plugin defaults, Sonivox ARM/JET/tests and flags RC;
+        # do not add their tools/tests to recovery or run hardware/reset hooks.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'ART_MIDI_PROJECTS'
+        external/vixl eea8abec9ea365f30ac09461a6133077d34f5ca2
+        external/tinyalsa 5638a6e1d1a5775c9d064948e68ac40722814b31
+        external/sonivox 39d4c3efe8f0c379c77305d0cf83a1ae480f2930
+        system/server_configurable_flags cf0231f8f5c03f9c83a5a972cfbaa410782a63f4
+        ART_MIDI_PROJECTS
+        while read -r module blueprint; do
+          grep -q "name: \"${module}\"" "$blueprint"
+        done <<'ART_MIDI_MODULES'
+        external_vixl_license external/vixl/Android.bp
+        vixl-common external/vixl/Android.bp
+        vixl-arm external/vixl/Android.bp
+        vixl-arm64 external/vixl/Android.bp
+        vixl-debug external/vixl/Android.bp
+        vixl-release external/vixl/Android.bp
+        libvixl-defaults external/vixl/Android.bp
+        libvixl external/vixl/Android.bp
+        libvixld external/vixl/Android.bp
+        vixl-test-runner external/vixl/Android.bp
+        external_tinyalsa_license external/tinyalsa/Android.bp
+        libtinyalsa external/tinyalsa/Android.bp
+        tinyplay external/tinyalsa/Android.bp
+        tinycap external/tinyalsa/Android.bp
+        tinymix external/tinyalsa/Android.bp
+        tinyhostless external/tinyalsa/Android.bp
+        tinypcminfo external/tinyalsa/Android.bp
+        external_sonivox_license external/sonivox/Android.bp
+        external_sonivox_arm-wt-22k_license external/sonivox/arm-wt-22k/Android.bp
+        libsonivox-defaults external/sonivox/arm-wt-22k/Android.bp
+        libsonivoxwithoutjet external/sonivox/arm-wt-22k/Android.bp
+        libsonivox external/sonivox/arm-wt-22k/Android.bp
+        SonivoxTest external/sonivox/test/Android.bp
+        server_configurable_flags system/server_configurable_flags/libflags/Android.bp
+        server_configurable_flags_test system/server_configurable_flags/libflags/Android.bp
+        flags_health_check system/server_configurable_flags/disaster_recovery/Android.bp
+        dex2oat-pgo-defaults art/dex2oat/Android.bp
+        soong-art art/build/Android.bp
+        libbase system/libbase/Android.bp
+        libcutils system/core/libcutils/Android.bp
+        liblog system/logging/liblog/Android.bp
+        Android-Apache-2.0 build/soong/licenses/Android.bp
+        ART_MIDI_MODULES
+        grep -q 'android.RegisterModuleType("art_cc_library", artLibrary)' art/build/art.go
+        grep -q 'android.RegisterModuleType("art_cc_defaults", artDefaultsFactory)' art/build/art.go
+        grep -q 'NotIn("art", "external/vixl")' art/build/art.go
+        grep -q '"//external/vixl"' art/dex2oat/Android.bp
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'ART_MIDI_INPUTS'
+        art/build/art.go
+        art/build/codegen.go
+        art/build/makevars.go
+        art/build/SoongConfig.bp
+        art/disassembler/Android.bp
+        frameworks/base/libs/usb/tests/accessorytest/Android.bp
+        frameworks/native/cmds/installd/Android.bp
+        frameworks/av/media/libmedia/Android.bp
+        external/vixl/LICENCE
+        external/vixl/Android.mk
+        external/vixl/src/code-buffer-vixl.cc
+        external/vixl/src/aarch32/disasm-aarch32.cc
+        external/vixl/src/aarch32/assembler-aarch32.cc
+        external/vixl/src/aarch64/disasm-aarch64.cc
+        external/vixl/src/aarch64/decoder-aarch64.cc
+        external/vixl/src/aarch64/simulator-aarch64.cc
+        external/vixl/test/test-runner.cc
+        external/vixl/test/aarch32/test-disasm-a32.cc
+        external/vixl/test/aarch64/test-disasm-aarch64.cc
+        external/vixl/test/test-trace-reference/log-disasm
+        external/tinyalsa/NOTICE
+        external/tinyalsa/include/tinyalsa/asoundlib.h
+        external/tinyalsa/mixer.c
+        external/tinyalsa/mixer_hw.c
+        external/tinyalsa/mixer_plugin.c
+        external/tinyalsa/pcm.c
+        external/tinyalsa/pcm_hw.c
+        external/tinyalsa/pcm_plugin.c
+        external/tinyalsa/snd_utils.c
+        external/tinyalsa/tinyplay.c
+        external/tinyalsa/tinycap.c
+        external/tinyalsa/tinymix.c
+        external/tinyalsa/tinyhostless.c
+        external/tinyalsa/tinypcminfo.c
+        external/sonivox/NOTICE
+        external/sonivox/arm-wt-22k/NOTICE
+        external/sonivox/arm-wt-22k/include/libsonivox/eas.h
+        external/sonivox/arm-wt-22k/host_src/eas_hostmm.c
+        external/sonivox/arm-wt-22k/lib_src/eas_public.c
+        external/sonivox/arm-wt-22k/lib_src/jet.c
+        external/sonivox/arm-wt-22k/lib_src/ARM-E_filter_gnu.s
+        external/sonivox/arm-wt-22k/lib_src/ARM-E_mastergain_gnu.s
+        external/sonivox/test/SonivoxTest.cpp
+        external/sonivox/test/SonivoxTestEnvironment.h
+        external/sonivox/test/AndroidTest.xml
+        system/server_configurable_flags/libflags/server_configurable_flags.cc
+        system/server_configurable_flags/libflags/server_configurable_flags_test.cc
+        system/server_configurable_flags/libflags/include/server_configurable_flags/get_flags.h
+        system/server_configurable_flags/libflags/include/server_configurable_flags/disaster_recovery.h
+        system/server_configurable_flags/disaster_recovery/disaster_recovery.cc
+        system/server_configurable_flags/disaster_recovery/flags_health_check.rc
+        ART_MIDI_INPUTS
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'

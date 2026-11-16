@@ -325,6 +325,44 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   this is not a full Rust/Soong build, grpc bindgen or CXX final-link result.
   None of these standalone checks proves Soong closure, ARM variants or boot.
 
+- Retained ART disassembly, USB accessory host tests, installd flag tests and
+  MIDI wrappers also need these four **complete**, pinned source projects from
+  `android-12.1.0_r4` (the `ART_MIDI_PROJECTS` workflow table):
+
+  | Project | Verified commit |
+  | --- | --- |
+  | `external/vixl` | `eea8abec9ea365f30ac09461a6133077d34f5ca2` |
+  | `external/tinyalsa` | `5638a6e1d1a5775c9d064948e68ac40722814b31` |
+  | `external/sonivox` | `39d4c3efe8f0c379c77305d0cf83a1ae480f2930` |
+  | `system/server_configurable_flags` | `cf0231f8f5c03f9c83a5a972cfbaa410782a63f4` |
+
+  VIXL keeps original ART-only visibility, ARM/T32/A64 codegen, simulator,
+  debug/release defaults, test runner and nonempty root `Android.mk` test target.
+  The retained ART plugin implements `art_cc_defaults`/`art_cc_library`, and its
+  `dex2oat-pgo-defaults` explicitly allows `external/vixl`; these are checked,
+  not recreated or widened. Tinyalsa is `external/tinyalsa`, not `tinyalsa_new`:
+  its seven library sources and five CLI declarations remain unchanged.
+  Sonivox keeps nested license/Blueprints, without-JET and JET libraries,
+  ARM assembly and original tests/configuration. Server flags keep their library,
+  tests and `flags_health_check` binary/init RC. Nothing here adds host tools or
+  tests to recovery packages, runs device hooks or relaxes missing dependencies.
+
+  Local input auditing checks all 3,419 tracked files, eight unchanged Blueprints
+  and 26 declarations, including licenses, source/include/test/RC inputs and
+  direct retained `libbase`/`libcutils`/`liblog`/license/ART defaults declarations.
+  Standalone Clang 23 checks are **partial, not passes**: 14/25 selected VIXL
+  library sources compile; old `std::iterator`, boolean-bitwise and constant
+  conversion diagnostics stop the rest under original `-Werror`. Ten of twelve
+  tinyalsa library/CLI sources compile; `pcm.c` hits a newer one-bit bit-field
+  diagnostic and `tinycap.c` lacks the Android `__unused` macro on this host.
+  No VIXL runner, disassembler example or tinyalsa helper/CLI runtime was run.
+  Sonivox standalone compilation stops at its original external framework
+  `media/MediaPlayerInterface.h` include; no synthetic header is supplied.
+  Server flags receive input/declaration auditing only: no native build/tests,
+  property writes, boot-failure/reset hooks or audio device operations are run.
+  Sources and diagnostic flags are unchanged; none of these local checks proves
+  Android compiler compatibility, Soong/ARM variants, final linking or boot.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.
