@@ -1410,6 +1410,28 @@ jobs:
         libminikin frameworks/minikin/libs/minikin/Android.bp
         CI42_MODULES
 
+        # libcore core-tests retains these Java test providers in the strict graph.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'CI43_PROJECTS'
+        external/mockftpserver 86f6b7d841a5025fb14bfb2e6de9367cca987f0f
+        external/mockwebserver 3636059264e07e0526caeb35b5973570c43698e1
+        external/nist-pkits 2cc1761ce02c0d784309ceccd3a840dc59725f88
+        external/slf4j a33893011bbdde59dce2a37f0a5f8a80c8a2ae89
+        external/javasqlite aaeca777c7e7c12d019d5a2e71718ea31aaaebc6
+        CI43_PROJECTS
+        while read -r module blueprint; do
+          grep -Eq "name:[[:space:]]*\"${module}\"" "$blueprint"
+        done <<'CI43_MODULES'
+        mockftpserver external/mockftpserver/Android.bp
+        mockwebserver external/mockwebserver/Android.bp
+        nist-pkix-tests external/nist-pkits/Android.bp
+        slf4j-jdk14 external/slf4j/Android.bp
+        sqlite-jdbc external/javasqlite/Android.bp
+        CI43_MODULES
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
