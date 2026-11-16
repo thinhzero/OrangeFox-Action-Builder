@@ -422,10 +422,42 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   local-Git integration cases reproduce the CI #35 failure, verify the corrected
   combined checkout against all 429 tracked files and reject duplicate/existing
   destinations without overwriting them. The complete restoration command
-  inventory has 107 unique clone destinations. These checks do not run full
-  remote sync or prove its success. None of these checks proves Android global
-  compiler flags, Bionic/ARM/Soong variants,
+  inventory has 108 unique clone destinations after adding fonttools below.
+  These checks do not run full remote sync or prove its success. None of these
+  checks proves Android global compiler flags, Bionic/ARM/Soong variants,
   complete helper/test builds, final image linking or hardware boot.
+
+- The retained framework `fontchain_linter` and `update_font_metadata` host
+  tools depend on `fontTools`, declared in the nested
+  `external/fonttools/Lib/fontTools/Android.bp`, not its root license Blueprint.
+  The minimal manifest removes that project. Restore the complete
+  `android-12.1.0_r4` source at `e76853bf40a5da5d1967ae174747408d080c17d6`,
+  including both original Blueprints, all source/test fixtures, and
+  `LICENSE`, `LICENSE.external` and `NOTICE`. Preserve the original special
+  licensing notices, Python 3 defaults/embedded-launcher settings, package path
+  and recursive Python source glob. Do not substitute a PyPI version or add
+  font tools/tests to recovery packages.
+
+  Local auditing verifies all 2,145 tracked files, two unchanged Blueprints,
+  three declarations and all 252 selected Python library sources. In-memory
+  syntax compilation succeeds on Python 3.14, retaining three upstream escape
+  sequence warnings. Of 45 selected original unittest modules, 43 pass with
+  763 test executions. Two modules fail to load: the UFO-backed cu2qu pen tests
+  lack optional `fs`, and isolated `otConverters` loading encounters an upstream
+  circular import. Initial discovery/harness failures and the corrected exact
+  module-run logs are both retained; no upstream files/import order are patched,
+  optional packages installed or full-suite success claimed.
+
+  Twelve custom synthetic checks cover TTF/CFF-OTF creation, TTX roundtrips,
+  subsetting, a two-face TTC, three rejected malformed inputs, and unmodified
+  framework linter/metadata scripts (including absolute/relative revisions).
+  The linter smoke uses a synthetic non-emoji configuration, not Android system
+  font/emoji/vertical-metric validation. All 36 actual shell guard cases and
+  three real local-Git integration cases pass, checking pins/files and refusing
+  duplicate/existing destinations without overwriting them. These are not
+  full remote sync, Soong embedded-Python packaging, Android build or boot proof.
+  CI #36 passed restoration and no longer reports missing jemalloc/annotations,
+  but stopped on the undefined `fontTools` dependency before producing an image.
 
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.

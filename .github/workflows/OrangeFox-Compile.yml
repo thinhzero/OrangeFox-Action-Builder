@@ -1085,6 +1085,49 @@ jobs:
         frameworks/libs/modules-utils/javatests/com/android/modules/utils/AndroidManifest.xml
         frameworks/libs/modules-utils/javatests/com/android/modules/utils/ParceledListSliceTest.java
         ALLOCATOR_ANNOTATIONS_INPUTS
+        # Retained framework font tools need the real host Python library.
+        # Keep the complete project, its original Python defaults/source glob
+        # and special license conditions; do not replace it with a PyPI package.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/fonttools external/fonttools
+        [[ "$(git -C external/fonttools rev-parse HEAD)" == e76853bf40a5da5d1967ae174747408d080c17d6 ]]
+        while read -r module blueprint; do
+          grep -Fq "name: \"${module}\"" "$blueprint"
+        done <<'FONTTOOLS_MODULES'
+        external_fonttools_license external/fonttools/Android.bp
+        fonttools_default external/fonttools/Lib/fontTools/Android.bp
+        fontTools external/fonttools/Lib/fontTools/Android.bp
+        fonts_python_defaults frameworks/base/tools/fonts/Android.bp
+        fontchain_linter frameworks/base/tools/fonts/Android.bp
+        update_font_metadata frameworks/base/tools/fonts/Android.bp
+        FONTTOOLS_MODULES
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'FONTTOOLS_INPUTS'
+        external/fonttools/LICENSE
+        external/fonttools/LICENSE.external
+        external/fonttools/NOTICE
+        external/fonttools/METADATA
+        external/fonttools/README.rst
+        external/fonttools/Lib/fontTools/__init__.py
+        external/fonttools/Lib/fontTools/ttLib/__init__.py
+        external/fonttools/Lib/fontTools/ttLib/ttFont.py
+        external/fonttools/Lib/fontTools/ttLib/ttCollection.py
+        external/fonttools/Lib/fontTools/ttLib/sfnt.py
+        external/fonttools/Lib/fontTools/ttLib/tables/_c_m_a_p.py
+        external/fonttools/Lib/fontTools/ttLib/tables/_n_a_m_e.py
+        external/fonttools/Lib/fontTools/cffLib/__init__.py
+        external/fonttools/Lib/fontTools/fontBuilder.py
+        external/fonttools/Lib/fontTools/feaLib/builder.py
+        external/fonttools/Lib/fontTools/subset/__init__.py
+        external/fonttools/Lib/fontTools/misc/xmlReader.py
+        external/fonttools/Lib/fontTools/misc/xmlWriter.py
+        external/fonttools/Tests/ttLib/ttFont_test.py
+        external/fonttools/Tests/fontBuilder/fontBuilder_test.py
+        external/fonttools/Tests/ttLib/tables/_c_m_a_p_test.py
+        frameworks/base/tools/fonts/fontchain_linter.py
+        frameworks/base/tools/fonts/update_font_metadata.py
+        FONTTOOLS_INPUTS
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
