@@ -1472,6 +1472,18 @@ jobs:
         grep -q 'name: "libfdlibm"' external/fdlibm/Android.bp
         test -s external/fdlibm/e_pow.c
 
+        # SettingsLib illustrations retain Lottie and its Okio dependency.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'CI50_PROJECTS'
+        external/lottie 4d4a4b708375c94066006aeca912374d84a4cc6d
+        external/okio 30cddbf0047dd52cc0f15aff775fe0eaf4291887
+        CI50_PROJECTS
+        grep -q 'name: "lottie"' external/lottie/Android.bp
+        grep -q 'name: "okio-lib"' external/okio/Android.bp
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
