@@ -594,8 +594,12 @@ jobs:
         git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/system/media system/media
         [[ "$(git -C system/media rev-parse HEAD)" == 612d1707ddd53b341512a8de9b3255c314e7c0b2 ]]
-        git -C system/media sparse-checkout set --no-cone /Android.bp /NOTICE /OWNERS /audio/ /audio_utils/
+        git -C system/media sparse-checkout set --no-cone /Android.bp /NOTICE /OWNERS /audio/ /audio_utils/ /audio_effects/
         git -C system/media checkout --detach HEAD
+        # Retained framework effect wrappers consume this exported header module.
+        grep -q 'name: "libaudioeffects"' system/media/audio_effects/Android.bp
+        [[ -f system/media/audio_effects/include/audio_effects/effect_downmix.h ]]
+        [[ -f system/media/audio_effects/include/audio_effects/effect_environmentalreverb.h ]]
         git clone --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/system/bt system/bt
         [[ "$(git -C system/bt rev-parse HEAD)" == 9827945fd41eb3c7940b5ce983e21757fdbae5f6 ]]
