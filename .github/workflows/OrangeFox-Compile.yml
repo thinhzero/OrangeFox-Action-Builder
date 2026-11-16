@@ -1370,6 +1370,26 @@ jobs:
         auto_factory_plugin external/auto/factory/Android.bp
         CI40_MODULES
 
+        # Retained audio preprocessing uses WebRTC. Its full Blueprint also
+        # declares codec/transport modules: restore their real providers together.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'WEBRTC_PROJECTS'
+        external/webrtc 567426a319812cfa95cf28d92cfc77480cd4344e
+        external/libaom 7737a2f7518e2b155448dfa8d1202a33c0bc3cea
+        external/libopus e00ebcdb4328689e18676d25f4fcbccfd125747c
+        external/libsrtp2 15fe3fd5acc7e2eefe98408fbdd99b437655d0ab
+        external/libvpx 4d870e159c43ef3dcea4044cf3ef7235e4483fce
+        external/libyuv 715a8b0584d482569ed39ee95291cfa9061c6aaf
+        external/pffft 2f01fecb71045759a4edcdeec2e717581157ca71
+        external/rnnoise 26b2d45e9211ac19d52d992963d38c0db21a0df0
+        external/usrsctp e8ab3d8a39b222119c8e4b24a7531c092fdfd0f3
+        WEBRTC_PROJECTS
+        grep -q 'name: "webrtc_audio_processing"' external/webrtc/Android.bp
+        grep -q 'name: "libwebrtc_absl_headers"' external/webrtc/third_party/abseil-cpp/Android.bp
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
