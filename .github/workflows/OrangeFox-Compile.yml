@@ -1439,6 +1439,13 @@ jobs:
         grep -q 'name: "vulkan_headers"' external/vulkan-headers/Android.bp
         test -s external/vulkan-headers/include/vulkan/vulkan_core.h
 
+        # Bluetooth's retained root-canal host module uses Breakpad's client.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/google-breakpad external/google-breakpad
+        [[ "$(git -C external/google-breakpad rev-parse HEAD)" == dd594e30ddcafeab4a16462e002bcb4bb76b9a2f ]]
+        grep -q 'name: "breakpad_client"' external/google-breakpad/Android.bp
+        test -s external/google-breakpad/src/client/linux/handler/exception_handler.cc
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
