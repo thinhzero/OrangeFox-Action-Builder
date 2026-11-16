@@ -383,6 +383,42 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   build or a proven host-only incompatibility. No C API/offline test, CTS,
   simpleperf integration, Soong/ARM final link or boot result is claimed.
 
+- Retained Bionic `libc_jemalloc_wrapper` and `hwbinder.stubs` need two more
+  **complete**, pinned projects from `android-12.1.0_r4`:
+
+  | Project | Verified commit |
+  | --- | --- |
+  | `external/jemalloc_new` | `6d4d27fd2651ed114386b89c2d251b816a849460` |
+  | `frameworks/libs/modules-utils` | `0a8bde0eb27a5de62e73faf9de06a498a4ccec69` |
+
+  In this AOSP version, `framework-annotations-lib` is declared in
+  `frameworks/libs/modules-utils/java/Android.bp`, **not** `frameworks/base`.
+  The minimal manifest removes that project. Restore its original annotation
+  filegroups/library, `core_current` API level and visibility, native SDK header,
+  Java/AIDL helpers, test/coverage/build-helper modules and instrumentation
+  manifest unchanged; do not manufacture an annotation module in framework.
+  Their direct AndroidX/platform/Tradefed/base/license dependencies are retained.
+
+  Jemalloc keeps its original variable-based flags, 30 library sources, JET,
+  unit/integration/stress lists, checked-in Bionic/host configuration and headers,
+  licenses, recovery/ramdisk variants, `linux_bionic_supported` defaults and
+  `libc_headers`. No allocator replacement, tcache/arena tuning, diagnostic
+  suppression, upstream edits or recovery test packages are introduced.
+
+  Local audits check all 429 tracked files, ten unchanged Blueprints and 23
+  declarations. Explicit expansion of jemalloc's nine original variables and
+  list/map/concatenation inputs is limited to this file, **not** a Soong evaluator.
+  All 185 selected base/JET/test-library/test-source compilations succeed on
+  Clang 23/glibc with the checked-in host configuration; the base library also
+  passes a whole-archive host link. No allocator executables/tests are run or
+  preloaded. All 76 original annotation-filegroup sources compile with Java 8
+  APIs, and ten custom metadata/default/consumer assertions pass. The other
+  modules-utils helpers/native header/instrumentation tests receive input and
+  declaration checks only. The 93 actual workflow guard cases reject wrong
+  pins/URLs/branches/modules or missing inputs/retained declarations. None of
+  these checks proves Android global compiler flags, Bionic/ARM/Soong variants,
+  complete helper/test builds, final image linking or hardware boot.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.

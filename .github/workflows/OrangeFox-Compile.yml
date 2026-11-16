@@ -991,6 +991,103 @@ jobs:
         external/OpenCSD/decoder/tests/snapshots/TC2/snapshot.ini
         external/OpenCSD/decoder/tests/snapshots/TC2/cstrace.bin
         OPENCSD_INPUTS
+        # Retained Bionic allocator wrappers and hwbinder stubs need these real
+        # projects. Android 12.1 moved framework annotations to modules-utils;
+        # do not recreate them in frameworks/base or replace allocator/config.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'ALLOCATOR_ANNOTATIONS_PROJECTS'
+        external/jemalloc_new 6d4d27fd2651ed114386b89c2d251b816a849460
+        frameworks/libs/modules-utils 0a8bde0eb27a5de62e73faf9de06a498a4ccec69
+        ALLOCATOR_ANNOTATIONS_PROJECTS
+        while read -r module blueprint; do
+          grep -Fq "name: \"${module}\"" "$blueprint"
+        done <<'ALLOCATOR_ANNOTATIONS_MODULES'
+        external_jemalloc_new_license external/jemalloc_new/Android.bp
+        jemalloc5_defaults external/jemalloc_new/Android.bp
+        libjemalloc5 external/jemalloc_new/Android.bp
+        libjemalloc5_jet external/jemalloc_new/Android.bp
+        libjemalloc5_unittest external/jemalloc_new/Android.bp
+        jemalloc5_unittests external/jemalloc_new/Android.bp
+        libjemalloc5_integrationtest external/jemalloc_new/Android.bp
+        jemalloc5_integrationtests external/jemalloc_new/Android.bp
+        libjemalloc5_stresstestlib external/jemalloc_new/Android.bp
+        jemalloc5_stresstests external/jemalloc_new/Android.bp
+        libmodules-utils-build frameworks/libs/modules-utils/build/Android.bp
+        framework-annotations frameworks/libs/modules-utils/java/Android.bp
+        framework-annotations-lib frameworks/libs/modules-utils/java/Android.bp
+        framework-api-annotations frameworks/libs/modules-utils/java/Android.bp
+        module-utils-os-aidls frameworks/libs/modules-utils/java/Android.bp
+        modules-utils-preconditions-srcs frameworks/libs/modules-utils/java/Android.bp
+        modules-utils-preconditions frameworks/libs/modules-utils/java/com/android/internal/util/Android.bp
+        modules-utils-os frameworks/libs/modules-utils/java/com/android/modules/utils/Android.bp
+        modules-utils-build frameworks/libs/modules-utils/java/com/android/modules/utils/build/Android.bp
+        modules-utils-build_system frameworks/libs/modules-utils/java/com/android/modules/utils/build/Android.bp
+        modules-utils-build-testing frameworks/libs/modules-utils/java/com/android/modules/utils/build/testing/Android.bp
+        modules-utils-native-coverage-listener frameworks/libs/modules-utils/java/com/android/modules/utils/testing/Android.bp
+        modules-utils-os-tests frameworks/libs/modules-utils/javatests/com/android/modules/utils/Android.bp
+        linux_bionic_supported build/soong/Android.bp
+        libc_headers bionic/libc/Android.bp
+        libc_jemalloc_wrapper bionic/libc/Android.bp
+        hwbinder.stubs frameworks/base/StubLibraries.bp
+        libbase system/libbase/Android.bp
+        Android-Apache-2.0 build/soong/licenses/Android.bp
+        androidx.annotation_annotation prebuilts/sdk/current/androidx/Android.bp
+        androidx.test.rules prebuilts/misc/common/androidx-test/Android.bp
+        androidx.test.runner prebuilts/misc/common/androidx-test/Android.bp
+        android.test.runner prebuilts/sdk/current/Android.bp
+        unsupportedappusage tools/platform-compat/java/android/compat/annotation/Android.bp
+        tradefed tools/tradefederation/prebuilts/test_harness/Android.bp
+        ALLOCATOR_ANNOTATIONS_MODULES
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'ALLOCATOR_ANNOTATIONS_INPUTS'
+        external/jemalloc_new/COPYING
+        external/jemalloc_new/LICENSE
+        external/jemalloc_new/NOTICE
+        external/jemalloc_new/MODULE_LICENSE_BSD
+        external/jemalloc_new/include/jemalloc/jemalloc.h
+        external/jemalloc_new/include/jemalloc/jemalloc_rename.h
+        external/jemalloc_new/include/jemalloc/internal/jemalloc_internal_defs.h
+        external/jemalloc_new/include/jemalloc/internal/jemalloc_internal_defs_host.h
+        external/jemalloc_new/include/jemalloc/internal/jemalloc_preamble.h
+        external/jemalloc_new/src/jemalloc.c
+        external/jemalloc_new/src/arena.c
+        external/jemalloc_new/src/ctl.c
+        external/jemalloc_new/src/pages.c
+        external/jemalloc_new/src/tsd.c
+        external/jemalloc_new/test/include/test/jemalloc_test.h
+        external/jemalloc_new/test/include/test/jemalloc_test_defs.h
+        external/jemalloc_new/test/src/test.c
+        external/jemalloc_new/test/unit/arena_reset.c
+        external/jemalloc_new/test/unit/bitmap.c
+        external/jemalloc_new/test/integration/mallocx.c
+        external/jemalloc_new/test/integration/cpp/basic.cpp
+        external/jemalloc_new/test/stress/microbench.c
+        frameworks/libs/modules-utils/Android.bp
+        frameworks/libs/modules-utils/TEST_MAPPING
+        frameworks/libs/modules-utils/build/include/android-modules-utils/sdk_level.h
+        frameworks/libs/modules-utils/java/android/annotation/NonNull.java
+        frameworks/libs/modules-utils/java/android/annotation/Nullable.java
+        frameworks/libs/modules-utils/java/android/annotation/SystemApi.java
+        frameworks/libs/modules-utils/java/android/annotation/TestApi.java
+        frameworks/libs/modules-utils/java/android/annotation/IntDef.java
+        frameworks/libs/modules-utils/java/android/annotation/RequiresPermission.java
+        frameworks/libs/modules-utils/java/com/android/internal/annotations/GuardedBy.java
+        frameworks/libs/modules-utils/java/com/android/internal/annotations/Immutable.java
+        frameworks/libs/modules-utils/java/com/android/internal/util/Preconditions.java
+        frameworks/libs/modules-utils/java/com/android/modules/utils/ParceledListSlice.aidl
+        frameworks/libs/modules-utils/java/com/android/modules/utils/StringParceledListSlice.aidl
+        frameworks/libs/modules-utils/java/com/android/modules/utils/BaseParceledListSlice.java
+        frameworks/libs/modules-utils/java/com/android/modules/utils/BasicShellCommandHandler.java
+        frameworks/libs/modules-utils/java/com/android/modules/utils/build/SdkLevel.java
+        frameworks/libs/modules-utils/java/com/android/modules/utils/build/testing/DeviceSdkLevel.java
+        frameworks/libs/modules-utils/java/com/android/modules/utils/testing/NativeCoverageHackInstrumentationListener.java
+        frameworks/libs/modules-utils/javatests/com/android/modules/utils/AndroidManifest.xml
+        frameworks/libs/modules-utils/javatests/com/android/modules/utils/ParceledListSliceTest.java
+        ALLOCATOR_ANNOTATIONS_INPUTS
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
