@@ -1463,7 +1463,7 @@ jobs:
         system/libsysprop e412578c5d32dea993330bb7ce6be14a7cf2d864
         CI47_PROJECTS
         grep -q 'name: "devicepolicyprotosnano"' frameworks/proto_logging/stats/enums/stats/devicepolicy/Android.bp
-        grep -q 'name: "PlatformProperties"' system/libsysprop/Android.bp
+        grep -q 'name: "PlatformProperties"' system/libsysprop/srcs/Android.bp
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
