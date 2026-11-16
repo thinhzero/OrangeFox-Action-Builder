@@ -48,7 +48,6 @@ jobs:
     name: Build OFR by ${{ github.actor }}
     runs-on: ubuntu-22.04
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Defaults only: any nonempty workflow input takes precedence.
       MANIFEST_BRANCH: ${{ inputs.MANIFEST_BRANCH || '12.1' }}
       DEVICE_TREE: ${{ inputs.DEVICE_TREE || 'https://git.thinh2701p.xyz/thinhzero/android_device_xiaomi_thyme.git' }}
@@ -61,6 +60,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        persist-credentials: false
               
     - name: Clean-up
       uses: rokibhasansagar/slimhub_actions@main
@@ -1128,6 +1129,165 @@ jobs:
         frameworks/base/tools/fonts/fontchain_linter.py
         frameworks/base/tools/fonts/update_font_metadata.py
         FONTTOOLS_INPUTS
+        # Retained framework/Conscrypt/Skia modules require these original
+        # projects. Preserve resources, compiler plugins, codecs, SIMD/assembly,
+        # validation/fuzzer sources and license conditions; no recovery packages.
+        # apifinder's Kotlin checker also needs lint_api from cmdline-tools,
+        # which the minimal manifest removes. Restore its real JARs/Blueprint.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'SKIA_FRAMEWORK_PROJECTS'
+        external/libphonenumber 1d0590a86976fba14c233c346dd886535d97f4aa
+        tools/apifinder eaf25fb9a7f47791310b8f3ba621311ec58c0d9b
+        external/webp 8c9c554a0dcb0f40f55ea7c440077bedd66194f1
+        external/sfntly 18570ec0301a59e3ddb0f3720db4cf00f833021c
+        external/dng_sdk 9f8d75246e1989e4b325f3252a3912affcc1b22a
+        external/libjpeg-turbo e78a6612493d491c4c24069db740022f2822f284
+        external/piex 3778c33a5928ad2a1874ca4f9dc54c0467b689e6
+        prebuilts/cmdline-tools 859a41090160f26e46438cd32f284ee1bab0d7ef
+        SKIA_FRAMEWORK_PROJECTS
+        while read -r module blueprint; do
+          grep -Eq "name:[[:space:]]*\"${module}\"" "$blueprint"
+        done <<'SKIA_FRAMEWORK_MODULES'
+        external_libphonenumber_license external/libphonenumber/Android.bp
+        libphonenumber-platform external/libphonenumber/Android.bp
+        libphonenumber-unbundled-defaults external/libphonenumber/Android.bp
+        libphonenumber external/libphonenumber/Android.bp
+        libphonenumber-nogeocoder external/libphonenumber/Android.bp
+        libphonenumber_test external/libphonenumber/Android.bp
+        java_api_finder tools/apifinder/Android.bp
+        java_api_used_by_mainline_module tools/apifinder/Android.bp
+        JavaApiUsedByMainlineModuleTest tools/apifinder/Android.bp
+        java_api_used_by_mainline_module_testdata tools/apifinder/Android.bp
+        JavaKotlinApiFinder tools/apifinder/Android.bp
+        external_webp_license external/webp/Android.bp
+        webp-headers external/webp/Android.bp
+        libwebp-encode external/webp/Android.bp
+        libwebp-decode external/webp/Android.bp
+        libwebp_fuzzer_defaults external/webp/Android.bp
+        libwebp_advanced_api_fuzzer external/webp/Android.bp
+        libwebp_animation_api_fuzzer external/webp/Android.bp
+        libwebp_animencoder_fuzzer external/webp/Android.bp
+        libwebp_enc_dec_fuzzer external/webp/Android.bp
+        libwebp_mux_demux_api_fuzzer external/webp/Android.bp
+        libwebp_simple_api_fuzzer external/webp/Android.bp
+        external_sfntly_license external/sfntly/Android.bp
+        libsfntly external/sfntly/Android.bp
+        external_dng_sdk_license external/dng_sdk/Android.bp
+        libdng_sdk-defaults external/dng_sdk/Android.bp
+        libdng_sdk external/dng_sdk/Android.bp
+        libdng_sdk_validate external/dng_sdk/Android.bp
+        dng_validate external/dng_sdk/Android.bp
+        dng_validate_host external/dng_sdk/Android.bp
+        dng_parser_fuzzer external/dng_sdk/fuzzer/Android.bp
+        external_libjpeg-turbo_license external/libjpeg-turbo/Android.bp
+        libjpeg-defaults external/libjpeg-turbo/Android.bp
+        libjpeg external/libjpeg-turbo/Android.bp
+        libjpeg_static_ndk external/libjpeg-turbo/Android.bp
+        tjbench external/libjpeg-turbo/Android.bp
+        external_piex_license external/piex/Android.bp
+        piex_default_cflags external/piex/Android.bp
+        libbinary_parse external/piex/Android.bp
+        libimage_type_recognition external/piex/Android.bp
+        libtiff_directory external/piex/Android.bp
+        libpiex external/piex/Android.bp
+        prebuilts_cmdline-tools_license prebuilts/cmdline-tools/Android.bp
+        lint_api prebuilts/cmdline-tools/Android.bp
+        lint-classpath prebuilts/cmdline-tools/Android.bp
+        lint prebuilts/cmdline-tools/Android.bp
+        Android-Apache-2.0 build/soong/licenses/Android.bp
+        unsupportedappusage tools/platform-compat/java/android/compat/annotation/Android.bp
+        error_prone_core external/error_prone/Android.bp
+        error_prone_test_helpers external/error_prone/Android.bp
+        auto_service_annotations external/auto/service/Android.bp
+        auto_service_plugin external/auto/service/Android.bp
+        hamcrest external/hamcrest/hamcrest-core/Android.bp
+        hamcrest-library external/hamcrest/hamcrest-library/Android.bp
+        junit external/junit/Android.bp
+        platform-test-annotations platform_testing/libraries/annotations/Android.bp
+        truth-prebuilt prebuilts/tools/common/m2/Android.bp
+        libandroidicu external/icu/libandroidicu/Android.bp
+        libicui18n external/icu/icu4c/source/i18n/Android.bp
+        libicuuc external/icu/icu4c/source/common/Android.bp
+        libcompiler_rt-extras external/compiler-rt/Android.bp
+        libz external/zlib/Android.bp
+        liblog system/logging/liblog/Android.bp
+        merge_zips build/soong/cmd/merge_zips/Android.bp
+        SKIA_FRAMEWORK_MODULES
+        while read -r input; do
+          [[ -f "$input" ]]
+        done <<'SKIA_FRAMEWORK_INPUTS'
+        external/libphonenumber/NOTICE
+        external/libphonenumber/METADATA
+        external/libphonenumber/repackaged/libphonenumber/src/com/android/i18n/phonenumbers/PhoneNumberUtil.java
+        external/libphonenumber/repackaged/libphonenumber/src/com/android/i18n/phonenumbers/data/PhoneNumberMetadataProto_VN
+        external/libphonenumber/repackaged/libphonenumber/src/com/android/i18n/phonenumbers/data/PhoneNumberMetadataProto_US
+        external/libphonenumber/repackaged/geocoder/src/com/android/i18n/phonenumbers/geocoding/PhoneNumberOfflineGeocoder.java
+        external/libphonenumber/repackaged/geocoder/src/com/android/i18n/phonenumbers/geocoding/data/84_vi
+        external/libphonenumber/repackaged/internal/prefixmapper/src/com/android/i18n/phonenumbers/prefixmapper/PrefixFileReader.java
+        external/libphonenumber/libphonenumber/src/com/google/i18n/phonenumbers/PhoneNumberUtil.java
+        external/libphonenumber/carrier/src/com/google/i18n/phonenumbers/PhoneNumberToCarrierMapper.java
+        external/libphonenumber/libphonenumber/test/com/google/i18n/phonenumbers/PhoneNumberUtilTest.java
+        tools/apifinder/src/main/com/android/apifinder/JavaApiUsedByMainlineModule.java
+        tools/apifinder/src/test/com/android/apifinder/JavaApiUsedByMainlineModuleTest.java
+        tools/apifinder/src/test/res/com/android/apifinder/JavaApiUsedByMainlineModuleCases.java
+        tools/apifinder/checks/src/main/java/com/android/apifinder/ApiFinderDetector.kt
+        tools/apifinder/checks/src/main/java/com/android/apifinder/ApiFinderIssueRegistry.kt
+        tools/apifinder/checks/src/test/java/com/android/apifinder/ApiFinderDetectorTest.kt
+        external/webp/COPYING
+        external/webp/NOTICE
+        external/webp/PATENTS
+        external/webp/include/webp/decode.h
+        external/webp/include/webp/encode.h
+        external/webp/src/demux/demux.c
+        external/webp/src/dsp/dec_neon.c
+        external/webp/src/dsp/enc_neon.c
+        external/webp/tests/fuzzer/advanced_api_fuzzer.c
+        external/sfntly/cpp/COPYING.txt
+        external/sfntly/cpp/src/sfntly/font.cc
+        external/sfntly/cpp/src/sample/chromium/font_subsetter.cc
+        external/dng_sdk/LICENSE
+        external/dng_sdk/LICENSE.source_code
+        external/dng_sdk/LICENSE.technology
+        external/dng_sdk/NOTICE
+        external/dng_sdk/PATENTS
+        external/dng_sdk/source/dng_flags.h
+        external/dng_sdk/source/dng_jpeg_memory_source.cpp
+        external/dng_sdk/source/dng_validate.cpp
+        external/dng_sdk/fuzzer/dng_parser_fuzzer.cpp
+        external/dng_sdk/fuzzer/seeds/CVE_2020_9589/original.dng
+        external/dng_sdk/fuzzer/seeds/CVE_2020_9589/poc.dng
+        external/libjpeg-turbo/LICENSE.md
+        external/libjpeg-turbo/jconfig.h
+        external/libjpeg-turbo/jconfigint.h
+        external/libjpeg-turbo/jpeglib.h
+        external/libjpeg-turbo/jsimd.h
+        external/libjpeg-turbo/jmorecfg.h
+        external/libjpeg-turbo/simd/arm/aarch64/jsimd.c
+        external/libjpeg-turbo/simd/arm/aarch64/jchuff-neon.c
+        external/libjpeg-turbo/simd/x86_64/jsimdcpu.asm
+        external/libjpeg-turbo/simd/nasm/jsimdext.inc
+        external/libjpeg-turbo/tjbench.c
+        external/piex/LICENSE
+        external/piex/src/piex.h
+        external/piex/src/piex.cc
+        external/piex/src/binary_parse/cached_paged_byte_array.cc
+        external/piex/src/image_type_recognition/image_type_recognition_lite.cc
+        external/piex/src/tiff_directory/tiff_directory.cc
+        prebuilts/cmdline-tools/NOTICE
+        prebuilts/cmdline-tools/METADATA
+        prebuilts/cmdline-tools/tools/NOTICE.txt
+        prebuilts/cmdline-tools/tools/bin/lint
+        prebuilts/cmdline-tools/tools/lib/lint-classpath.jar
+        prebuilts/cmdline-tools/tools/lib/lint/lint-api.jar
+        prebuilts/cmdline-tools/tools/lib/lint/lint-checks.jar
+        prebuilts/cmdline-tools/tools/lib/external/com/google/guava/guava/28.1-jre/guava-28.1-jre.jar
+        prebuilts/cmdline-tools/tools/lib/external/lint-psi/intellij-core/intellij-core-all.jar
+        prebuilts/cmdline-tools/tools/lib/external/lint-psi/kotlin-compiler/kotlin-compiler-all.jar
+        prebuilts/cmdline-tools/tools/lib/external/lint-psi/uast/uast-all.jar
+        SKIA_FRAMEWORK_INPUTS
 
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
@@ -1145,6 +1305,8 @@ jobs:
     - name: Building OrangeFox
       run: |
         set -o pipefail
+        # Soong logs its environment; never pass release credentials to it.
+        unset GITHUB_TOKEN GH_TOKEN
         cd "${GITHUB_WORKSPACE}/OrangeFox/fox_${MANIFEST_BRANCH}"
         export FOX_BUILD_DEVICE="$DEVICE_NAME"
         unset ALLOW_MISSING_DEPENDENCIES SOONG_ALLOW_MISSING_DEPENDENCIES
@@ -1174,7 +1336,10 @@ jobs:
           bash -ec 'source /tmp/thyme/fox_env.sh; [[ "$FOX_VARIANT" == PixelOS17-boot-test && "$FOX_DISABLE_UPDATEZIP" == 1 && "$OF_NO_REFLASH_CURRENT_ORANGEFOX" == 1 ]]; [[ -z "${ALLOW_MISSING_DEPENDENCIES:-}${SOONG_ALLOW_MISSING_DEPENDENCIES:-}" ]]'
         fi
         make clean
-        mka adbd "${BUILD_TARGET}image" 2>&1 | tee "${GITHUB_WORKSPACE}/build.log"
+        if [[ "${THYME_BOOT_TEST:-}" == 1 ]]; then
+          m nothing 2>&1 | tee "${GITHUB_WORKSPACE}/build.log"
+        fi
+        mka adbd "${BUILD_TARGET}image" 2>&1 | tee -a "${GITHUB_WORKSPACE}/build.log"
         if [[ "$DEVICE_NAME" == "thyme" && "$BUILD_TARGET" == "boot" ]]; then
           python3 "${DEVICE_PATH}/scripts/check-tree.py" \
             --recovery-root "out/target/product/${DEVICE_NAME}/recovery/root" \
@@ -1209,20 +1374,22 @@ jobs:
         Host/image checks passed; hardware boot, touch, USB and decryption are NOT verified.
         EOF
 
-    - name: Upload build diagnostics
+    - name: Prepare sanitized build diagnostics
+      id: prepare-diagnostics
       if: always()
+      run: |
+        python3 scripts/collect-build-diagnostics.py \
+          --workspace "$GITHUB_WORKSPACE" --manifest-branch "$MANIFEST_BRANCH"
+
+    - name: Upload build diagnostics
+      if: ${{ always() && steps.prepare-diagnostics.outcome == 'success' }}
       uses: actions/upload-artifact@v4
       with:
         name: build-diagnostics-${{ github.run_id }}
         if-no-files-found: ignore
-        path: |
-          build.log
-          source-defaults-report.json
-          source-libraries-report.json
-          OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/error.log
-          OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/soong.log
-          OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/verbose.log.gz
-          boot-test-release/SHA256SUMS
+        # Raw soong.log includes exported environment values. Never upload it,
+        # verbose.log.gz, fox_env.sh, or the source/output tree wholesale.
+        path: build-diagnostics/
 
     - name: Set Release Properties
       run: |
@@ -1239,6 +1406,7 @@ jobs:
       if: env.THYME_BOOT_TEST != '1'
       uses: softprops/action-gh-release@v2
       with:
+        token: ${{ github.token }}
         files: |
           OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/target/product/${{ env.DEVICE_NAME }}/OrangeFox*.img
           OrangeFox/fox_${{ env.MANIFEST_BRANCH }}/out/target/product/${{ env.DEVICE_NAME }}/OrangeFox*.zip
@@ -1254,6 +1422,7 @@ jobs:
       if: env.THYME_BOOT_TEST == '1'
       uses: softprops/action-gh-release@v2
       with:
+        token: ${{ github.token }}
         fail_on_unmatched_files: true
         files: boot-test-release/*
         prerelease: true

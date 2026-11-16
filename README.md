@@ -31,6 +31,13 @@ blank fields do not infer values from other fields.
 
 ## Thyme PixelOS 17 temporary boot test
 
+**CI follow-up authorized after local review.** CI #37 did not generate an image.
+The strict dependency checks do not match the pruned legacy manifest; the
+additional source restorations below are not proof that the graph
+is complete or that the PixelOS black-screen issue is fixed. See the
+[local root-cause review](docs/thyme-local-review.md). The boot-test workflow now
+runs `m nothing` before compiling `adbd bootimage` and retains both stages' logs.
+
 Keep the inputs above, but set `DEVICE_TREE_BRANCH=fox_12.1-aosp` and
 `BUILD_TARGET=boot`. The tree's `prebuilt/pixelos/manifest.json` identifies this
 profile; the workflow rejects other targets for it. Baseline defaults are unchanged.
@@ -422,7 +429,7 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   local-Git integration cases reproduce the CI #35 failure, verify the corrected
   combined checkout against all 429 tracked files and reject duplicate/existing
   destinations without overwriting them. The complete restoration command
-  inventory has 108 unique clone destinations after adding fonttools below.
+  inventory has 116 unique clone destinations after the restorations below.
   These checks do not run full remote sync or prove its success. None of these
   checks proves Android global compiler flags, Bionic/ARM/Soong variants,
   complete helper/test builds, final image linking or hardware boot.
@@ -459,6 +466,69 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   CI #36 passed restoration and no longer reports missing jemalloc/annotations,
   but stopped on the undefined `fontTools` dependency before producing an image.
 
+- CI #37 passed source restoration and no longer reports undefined `fontTools`,
+  but stopped before image generation on eight undefined dependencies of
+  framework `ext`, Conscrypt and Skia. Restore these complete, unmodified
+  `android-12.1.0_r4` projects under the same boot-test-only gate:
+
+  | Project | Verified commit |
+  | --- | --- |
+  | `external/libphonenumber` | `1d0590a86976fba14c233c346dd886535d97f4aa` |
+  | `tools/apifinder` | `eaf25fb9a7f47791310b8f3ba621311ec58c0d9b` |
+  | `external/webp` | `8c9c554a0dcb0f40f55ea7c440077bedd66194f1` |
+  | `external/sfntly` | `18570ec0301a59e3ddb0f3720db4cf00f833021c` |
+  | `external/dng_sdk` | `9f8d75246e1989e4b325f3252a3912affcc1b22a` |
+  | `external/libjpeg-turbo` | `e78a6612493d491c4c24069db740022f2822f284` |
+  | `external/piex` | `3778c33a5928ad2a1874ca4f9dc54c0467b689e6` |
+  | `prebuilts/cmdline-tools` | `859a41090160f26e46438cd32f284ee1bab0d7ef` |
+
+  The eighth project supplies apifinder's real `lint_api` JARs; the minimal
+  manifest removes it too. Preserve its complete original Blueprint, generator,
+  wrapper, `NOTICE -> tools/NOTICE.txt` symlink and restricted-license metadata.
+  Apifinder retains both ErrorProne/Auto Service and Kotlin lint checker/test
+  sources. Libphonenumber keeps repackaged platform Java and binary metadata,
+  `core_current`/unsupportedappusage, unbundled Java 7 variants, tests/resources.
+  DNG keeps special license/PATENTS, JPEG/XMP settings, exceptions, RTTI,
+  sanitizers, validator and fuzzer variants. JPEG retains SIMD, ARM/ARM64 NEON,
+  x86 NASM and checked-in configuration. No upstream flags, sources, tests,
+  visibility or compiler plugins are removed, and no host tools, fuzzers,
+  validators or benchmarks are added to recovery packages.
+
+  Local audits verify all 3,725 tracked files, nine original Blueprints and 46
+  declarations. A parser limited to the seven source projects' eight original
+  files checks 669 expanded local input entries and 18 direct external refs;
+  it does not evaluate Soong. The lint prebuilt receives 81 expanded input
+  checks, CRC checks of 80 JARs and presence checks of all 61 manifest-classpath
+  targets; its `merge_zips` generator is retained, not executed in this audit.
+
+  All 28 platform Java, 29 unbundled Java and 23 phone test sources compile;
+  311 original phone tests pass. A custom platform smoke reads original VN/US
+  metadata, E164 formatting and geocoding resources and rejects an invalid
+  number. The original Java API checker compiles with the real Auto Service
+  processor and generates its service registration. Its one original test
+  passes after supplying original ErrorProne helper/core transitive JARs;
+  initial missing-JAR harness failures are retained. This host-only test uses
+  JDK 17 exports and an existing audited Truth 0.36 helper, not the exact Soong
+  `truth-prebuilt` version, so it does not prove Soong test packaging. Kotlin
+  compilation of the two original checker sources fails in the old compiler's
+  IntelliJ initialization on JDK 17 (`java.util` module access); no source or
+  compiler flags are patched to hide this failure, and kapt/tests are not run.
+
+  Native checks preserve all original module flags: WebP encode compiles 52/52
+  selected sources, decode 62/63 (the host Clang 23 `demux.c` unused-but-set
+  variable warning is an error). PIEX compiles 6/6 and passes a whole-archive
+  host link plus a synthetic negative-input smoke, not real RAW extraction.
+  JPEG compiles 53 selected x86_64 C sources with SIMD enabled; NASM is absent,
+  so assembly and final linking are unproven. All 65 selected DNG translation
+  units compile with JPEG/XMP, exceptions and sanitizer flags intact, but no
+  final DNG link is claimed. Sfntly's first translation unit fails on Clang's
+  historical `-fno-tree-sra`/`-finline-limit=64` flags and passes on host GCC;
+  neither proves the full library or Android flags. No WebP combined runtime
+  smoke is claimed while decode fails. All 159 actual shell guard cases and
+  three real local-Git integration cases pass, including duplicate/existing
+  destination rejection without overwriting. These checks do not prove remote
+  sync, full Soong/ARM/Bionic variants, final image linking or hardware boot.
+
 - Before building this profile, an advisory read-only scan reports literal
   defaults references without literal definitions, capped at 200 candidate names.
   A separate scan reports library/tool reference candidates, with the same cap.
@@ -471,7 +541,23 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   environment. Do not upload that environment snapshot: it may contain CI secrets.
 - The workflow validates the encoded boot ramdisk and the published image, rejects
   ZIP installers, and publishes a **prerelease** with `SHA256SUMS` and boot-test notes.
-- Build logs are retained as a diagnostics artifact even on failure.
+- A small sanitized allowlist is prepared for diagnostics, including on failure:
+  `build.log`, the two source-reference reports, `out/error.log` and, if present,
+  the boot-test checksums. Raw `out/soong.log`, `out/verbose.log.gz` and
+  `fox_env.sh` are never uploaded. Upload is skipped if preparation fails.
+- Do not export release credentials at job scope: Soong records its environment.
+  Checkout does not persist credentials, the build unsets `GITHUB_TOKEN` and
+  `GH_TOKEN`, and the release actions receive their token directly. Known GitHub
+  token shapes, HTTP URL credentials and matching sensitive environment values
+  (at least eight characters) are redacted. This is not a general secret detector
+  or a permission sandbox: the job still has `contents: write` permission.
+
+Local diagnostics regressions (no sync, CI dispatch or phone access):
+
+```sh
+python3 -B scripts/test-collect-build-diagnostics.py
+python3 -B scripts/test-audit-defaults.py
+```
 
 This is for temporary `fastboot boot` testing, **not flashing/installing**. Build
 and image checks do not prove hardware boot, touch, USB, reboot or FBE compatibility.
