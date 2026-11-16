@@ -1314,6 +1314,33 @@ jobs:
         prebuilts/cmdline-tools/tools/lib/external/lint-psi/uast/uast-all.jar
         SKIA_FRAMEWORK_INPUTS
 
+        # CI38: retained Connectivity, adb host and stagefright declarations.
+        # net's test helpers also need the real nanohttpd and dexmaker projects.
+        # Preserve full sources/licenses; these are not recovery PRODUCT_PACKAGES.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'CI38_PROJECTS'
+        frameworks/libs/net b94846db0fd58ffcbd10e692ca0d2a3472929705
+        external/openscreen 264d76c60389dae367672f2ddb2a5987c0bf043a
+        external/flac 702c7e785c9b8b6f587eb5deb827571f5a188d6a
+        external/nanohttpd 66670dfc0fb50cb769a9a1ca62dbe8c6e7d5a84a
+        external/dexmaker 691b39b4b19a3a1726f13b7c5ac6bd0fb906a614
+        CI38_PROJECTS
+        while read -r module blueprint; do
+          grep -Eq "name:[[:space:]]*\"${module}\"" "$blueprint"
+        done <<'CI38_MODULES'
+        net-utils-device-common frameworks/libs/net/common/Android.bp
+        net-tests-utils frameworks/libs/net/common/testutils/Android.bp
+        libopenscreen-discovery external/openscreen/Android.bp
+        libopenscreen-platform-impl external/openscreen/Android.bp
+        libopenscreen_absl external/openscreen/third_party/abseil/Android.bp
+        libFLAC external/flac/src/libFLAC/Android.bp
+        libnanohttpd external/nanohttpd/Android.bp
+        mockito-target-extended-minus-junit4 external/dexmaker/Android.bp
+        CI38_MODULES
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
