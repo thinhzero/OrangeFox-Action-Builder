@@ -1390,6 +1390,26 @@ jobs:
         grep -q 'name: "webrtc_audio_processing"' external/webrtc/Android.bp
         grep -q 'name: "libwebrtc_absl_headers"' external/webrtc/third_party/abseil-cpp/Android.bp
 
+        # ART, libbrillo HTTP and HWUI retain these providers in the global graph.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'CI42_PROJECTS'
+        external/cpu_features 1fa3785a766cf3a009edd5048e0b4a2c48f788c3
+        external/curl 96813bdf12a382393ea0646d2beb82e813ad06cd
+        external/harfbuzz_ng 29fd2884ecc5ffdb0b3ec56ebde8aeeaeea00de3
+        frameworks/minikin 6816c3856cd0ff46dfec461e36ba3ecfa7f4ce64
+        CI42_PROJECTS
+        while read -r module blueprint; do
+          grep -Eq "name:[[:space:]]*\"${module}\"" "$blueprint"
+        done <<'CI42_MODULES'
+        libcpu_features external/cpu_features/Android.bp
+        libcurl external/curl/Android.bp
+        libharfbuzz_ng external/harfbuzz_ng/Android.bp
+        libminikin frameworks/minikin/libs/minikin/Android.bp
+        CI42_MODULES
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
