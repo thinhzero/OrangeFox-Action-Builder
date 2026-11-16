@@ -1446,6 +1446,13 @@ jobs:
         grep -q 'name: "breakpad_client"' external/google-breakpad/Android.bp
         test -s external/google-breakpad/src/client/linux/handler/exception_handler.cc
 
+        # The retained Ogg extractor requires Tremolo's Vorbis decoder.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/tremolo external/tremolo
+        [[ "$(git -C external/tremolo rev-parse HEAD)" == fe21bc1f0e2d1b64b4024acdda6949510c2a3bc6 ]]
+        grep -q 'name: "libvorbisidec"' external/tremolo/Android.bp
+        test -s external/tremolo/Tremolo/vorbisfile.c
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
