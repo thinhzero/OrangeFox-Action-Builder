@@ -424,14 +424,11 @@ jobs:
         git -C external/smali checkout --detach HEAD
         grep -q 'name: "dexlib2-no-guava-no-cli"' external/smali/dexlib2/Android.bp
         [[ -f external/smali/dexlib2/src/main/java/org/jf/dexlib2/DexFileFactory.java && -f external/smali/NOTICE ]]
-        # The host helper has no dependency on modules-utils' device-side code.
-        # Retain its original root package and complete build/testing directory.
-        git clone --filter=blob:none --no-checkout --depth 1 --branch android-12.1.0_r4 \
+        # Restore modules-utils once, in full: platform-compat uses its host
+        # helper, while hwbinder stubs also need its framework annotation library.
+        git clone --depth 1 --branch android-12.1.0_r4 \
           https://android.googlesource.com/platform/frameworks/libs/modules-utils frameworks/libs/modules-utils
         [[ "$(git -C frameworks/libs/modules-utils rev-parse HEAD)" == 0a8bde0eb27a5de62e73faf9de06a498a4ccec69 ]]
-        git -C frameworks/libs/modules-utils sparse-checkout set --no-cone \
-          /Android.bp /OWNERS /PREUPLOAD.cfg /TEST_MAPPING /java/com/android/modules/utils/build/testing/
-        git -C frameworks/libs/modules-utils checkout --detach HEAD
         grep -q 'name: "modules-utils-build-testing"' frameworks/libs/modules-utils/java/com/android/modules/utils/build/testing/Android.bp
         [[ -f frameworks/libs/modules-utils/java/com/android/modules/utils/build/testing/DeviceSdkLevel.java ]]
         # Remaining dependencies are actual retained/restored imports/libraries.
@@ -992,15 +989,15 @@ jobs:
         external/OpenCSD/decoder/tests/snapshots/TC2/cstrace.bin
         OPENCSD_INPUTS
         # Retained Bionic allocator wrappers and hwbinder stubs need these real
-        # projects. Android 12.1 moved framework annotations to modules-utils;
-        # do not recreate them in frameworks/base or replace allocator/config.
+        # projects. modules-utils was already restored in full above; do not
+        # clone it twice, recreate annotations in frameworks/base or replace
+        # allocator/config.
         while read -r project revision; do
           git clone --depth 1 --branch android-12.1.0_r4 \
             "https://android.googlesource.com/platform/${project}" "$project"
           [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
         done <<'ALLOCATOR_ANNOTATIONS_PROJECTS'
         external/jemalloc_new 6d4d27fd2651ed114386b89c2d251b816a849460
-        frameworks/libs/modules-utils 0a8bde0eb27a5de62e73faf9de06a498a4ccec69
         ALLOCATOR_ANNOTATIONS_PROJECTS
         while read -r module blueprint; do
           grep -Fq "name: \"${module}\"" "$blueprint"

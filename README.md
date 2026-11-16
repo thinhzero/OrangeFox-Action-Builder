@@ -169,7 +169,7 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   | `external/apache-commons-bcel` | `040b6144329cdd183b1d79998995800f2b9c003f` | Complete project |
   | `external/jcommander` | `8ce937f3ef2ed68f188cc0637664933a711124de` | Complete project |
   | `external/smali` | `bb22a92b16eb0453f7f42a540679fad20382b68d` | Root declarations/license/metadata and their script/Gradle inputs, complete `dexlib2` subtree |
-  | `frameworks/libs/modules-utils` | `0a8bde0eb27a5de62e73faf9de06a498a4ccec69` | Root package/metadata and complete `java/com/android/modules/utils/build/testing` directory |
+  | `frameworks/libs/modules-utils` | `0a8bde0eb27a5de62e73faf9de06a498a4ccec69` | Complete project, shared with the framework annotation dependency below; cloned once |
 
   Other explicit dependencies are existing Guava, JSR305, Tradefed, the retained
   `commons-cli-1.2` import and the retained AndroidX annotation import. Source/JAR
@@ -383,7 +383,7 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   build or a proven host-only incompatibility. No C API/offline test, CTS,
   simpleperf integration, Soong/ARM final link or boot result is claimed.
 
-- Retained Bionic `libc_jemalloc_wrapper` and `hwbinder.stubs` need two more
+- Retained Bionic `libc_jemalloc_wrapper` and `hwbinder.stubs` need these two
   **complete**, pinned projects from `android-12.1.0_r4`:
 
   | Project | Verified commit |
@@ -398,6 +398,9 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   Java/AIDL helpers, test/coverage/build-helper modules and instrumentation
   manifest unchanged; do not manufacture an annotation module in framework.
   Their direct AndroidX/platform/Tradefed/base/license dependencies are retained.
+  Its earlier host-helper checkout is now complete; it is not cloned again in
+  the allocator/annotation guards. CI #35 stopped on that duplicate destination
+  before Soong ran, so it provides no new compile or boot evidence.
 
   Jemalloc keeps its original variable-based flags, 30 library sources, JET,
   unit/integration/stress lists, checked-in Bionic/host configuration and headers,
@@ -415,8 +418,13 @@ profile; the workflow rejects other targets for it. Baseline defaults are unchan
   APIs, and ten custom metadata/default/consumer assertions pass. The other
   modules-utils helpers/native header/instrumentation tests receive input and
   declaration checks only. The 93 actual workflow guard cases reject wrong
-  pins/URLs/branches/modules or missing inputs/retained declarations. None of
-  these checks proves Android global compiler flags, Bionic/ARM/Soong variants,
+  pins/URLs/branches/modules or missing inputs/retained declarations. Four real
+  local-Git integration cases reproduce the CI #35 failure, verify the corrected
+  combined checkout against all 429 tracked files and reject duplicate/existing
+  destinations without overwriting them. The complete restoration command
+  inventory has 107 unique clone destinations. These checks do not run full
+  remote sync or prove its success. None of these checks proves Android global
+  compiler flags, Bionic/ARM/Soong variants,
   complete helper/test builds, final image linking or hardware boot.
 
 - Before building this profile, an advisory read-only scan reports literal
