@@ -1453,6 +1453,18 @@ jobs:
         grep -q 'name: "libvorbisidec"' external/tremolo/Android.bp
         test -s external/tremolo/Tremolo/vorbisfile.c
 
+        # framework-internal-utils retains device-policy protos and sysprops.
+        while read -r project revision; do
+          git clone --depth 1 --branch android-12.1.0_r4 \
+            "https://android.googlesource.com/platform/${project}" "$project"
+          [[ "$(git -C "$project" rev-parse HEAD)" == "$revision" ]]
+        done <<'CI47_PROJECTS'
+        frameworks/proto_logging 0973249c4f52460c7225100b9b0c3540fbee331e
+        system/libsysprop e412578c5d32dea993330bb7ce6be14a7cf2d864
+        CI47_PROJECTS
+        grep -q 'name: "devicepolicyprotosnano"' frameworks/proto_logging/stats/enums/stats/devicepolicy/Android.bp
+        grep -q 'name: "PlatformProperties"' system/libsysprop/Android.bp
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
