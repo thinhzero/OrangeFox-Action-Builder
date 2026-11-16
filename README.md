@@ -29,6 +29,24 @@ optional text field is left empty, its default is used. When building another
 device, provide its tree URL, branch, device path, codename, and matching target;
 blank fields do not infer values from other fields.
 
+## Select OrangeFox or AERA
+
+Run **Recovery - Build (OrangeFox / AERA)** and choose `RECOVERY`.
+OrangeFox remains the default. Empty device fields individually fall back to
+the thyme URL, `fox_12.1`, `device/xiaomi/thyme`, and `thyme`; nonempty inputs
+are passed unchanged to the selected build, artifact paths, and release metadata.
+
+The restored thyme baseline is `fea5110202565d074629ff455400410ffb4f1225`
+on `fox_12.1`. The experimental PixelOS work remains on `fox_12.1-aosp`.
+
+AERA uses its [official Android 16 manifest](https://github.com/AERA-Recovery/android_manifest),
+`AERA_MANIFEST_BRANCH=aera-16.0`, `twrp_<device>-bp2a-eng`, and AERA-prefixed
+artifacts. `MANIFEST_BRANCH` (11.0/12.1) only controls OrangeFox.
+Supply an **AERA-compatible device tree** and the correct build target.
+The thyme OrangeFox baseline is not yet an AERA port and is rejected before
+sync. The AERA workflow is implemented but has not had a full CI build or a
+hardware test. It does not apply OrangeFox's 12.1 dependency restorations.
+
 ## Thyme PixelOS 17 temporary boot test
 
 **CI follow-up authorized after local review.** CI #37 did not generate an image.

@@ -1,0 +1,130 @@
+name: AERA build implementation
+
+on:
+  workflow_call:
+    inputs:
+      MANIFEST_BRANCH:
+        required: true
+        type: string
+      DEVICE_TREE:
+        required: true
+        type: string
+      DEVICE_TREE_BRANCH:
+        required: true
+        type: string
+      DEVICE_PATH:
+        required: true
+        type: string
+      DEVICE_NAME:
+        required: true
+        type: string
+      BUILD_TARGET:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    env:
+      MANIFEST_BRANCH: ${{ inputs.MANIFEST_BRANCH }}
+      DEVICE_TREE: ${{ inputs.DEVICE_TREE }}
+      DEVICE_TREE_BRANCH: ${{ inputs.DEVICE_TREE_BRANCH }}
+      DEVICE_PATH: ${{ inputs.DEVICE_PATH }}
+      DEVICE_NAME: ${{ inputs.DEVICE_NAME }}
+      BUILD_TARGET: ${{ inputs.BUILD_TARGET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check device inputs before source sync
+        run: |
+          set -euo pipefail
+          [[ "$MANIFEST_BRANCH" == aera-16.0 ]]
+          [[ "$DEVICE_NAME" =~ ^[a-zA-Z0-9_]+$ ]]
+          [[ "$DEVICE_PATH" =~ ^device/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$ ]]
+          [[ "$DEVICE_TREE" == https://* ]]
+          case "$BUILD_TARGET" in boot|recovery|vendorboot) ;; *) exit 1 ;; esac
+          git clone --depth 1 --branch "$DEVICE_TREE_BRANCH" "$DEVICE_TREE" selected-device
+          echo "COMMIT_ID=$(git -C selected-device rev-parse HEAD)" >> "$GITHUB_ENV"
+          # The restored thyme baseline has an OrangeFox-specific source patch.
+          # It is not an Android 16 AERA port; reject before a large sync.
+          if [[ "$DEVICE_NAME" == thyme ]] && grep -q 'FOX_BUILD_DEVICE' selected-device/vendorsetup.sh && ! grep -q 'AERA_BUILD_DEVICE' selected-device/vendorsetup.sh; then
+            echo '::error::thyme fox_12.1 is the restored OrangeFox baseline. Select an AERA-ported device branch for AERA.'
+            exit 1
+          fi
+      - name: Clean-up
+        uses: rokibhasansagar/slimhub_actions@main
+      - name: Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 24
+      - name: Install build dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses-dev lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush python3 rsync schedtool squashfs-tools unzip xsltproc zip zlib1g-dev
+          mkdir -p "$HOME/bin"
+          curl -fL https://storage.googleapis.com/git-repo-downloads/repo -o "$HOME/bin/repo"
+          chmod +x "$HOME/bin/repo"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Sync AERA Android 16
+        run: |
+          set -euo pipefail
+          mkdir AERA
+          cd AERA
+          git config --global user.name "$GITHUB_ACTOR"
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          repo init -u https://github.com/AERA-Recovery/android_manifest.git -b "$MANIFEST_BRANCH" --depth=1
+          repo sync -c --no-clone-bundle --no-tags -j4 --fail-fast
+          repo manifest -r -o "$GITHUB_WORKSPACE/aera-manifest.xml"
+          mkdir -p "$(dirname "$DEVICE_PATH")"
+          mv "$GITHUB_WORKSPACE/selected-device" "$DEVICE_PATH"
+      - name: Build AERA
+        run: |
+          set -eo pipefail
+          unset GITHUB_TOKEN GH_TOKEN ALLOW_MISSING_DEPENDENCIES SOONG_ALLOW_MISSING_DEPENDENCIES
+          cd AERA
+          export AERA_BUILD_DEVICE="$DEVICE_NAME"
+          source build/envsetup.sh
+          if [[ -f "$DEVICE_PATH/vendorsetup.sh" ]]; then source "$DEVICE_PATH/vendorsetup.sh" "$DEVICE_NAME"; fi
+          lunch "twrp_${DEVICE_NAME}-bp2a-eng"
+          unset ALLOW_MISSING_DEPENDENCIES SOONG_ALLOW_MISSING_DEPENDENCIES
+          m nothing 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
+          mka adbd "${BUILD_TARGET}image" 2>&1 | tee -a "$GITHUB_WORKSPACE/build.log"
+      - name: Collect AERA artifacts
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=("AERA/out/target/product/$DEVICE_NAME"/AERA*.img "AERA/out/target/product/$DEVICE_NAME"/AERA*.zip)
+          [[ ${#files[@]} -gt 0 ]]
+          mkdir aera-release
+          cp "${files[@]}" aera-release/
+          cp aera-manifest.xml aera-release/
+          cd aera-release
+          sha256sum -- *.img > SHA256SUMS
+          printf 'Device tree: %s\nBranch: %s\nCommit: %s\nTarget: %s\nHardware boot not verified.\n' "$DEVICE_TREE" "$DEVICE_TREE_BRANCH" "$COMMIT_ID" "$BUILD_TARGET" > BUILD.txt
+      - name: Prepare sanitized diagnostics
+        if: always()
+        id: diagnostics
+        run: python3 scripts/collect-build-diagnostics.py --workspace "$GITHUB_WORKSPACE" --manifest-branch 12.1
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.diagnostics.outcome == 'success' }}
+        with:
+          name: aera-diagnostics-${{ github.run_id }}
+          path: build-diagnostics/
+      - name: Publish AERA
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ github.token }}
+          tag_name: aera-${{ github.run_id }}
+          name: AERA Recovery - ${{ env.DEVICE_NAME }}
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: aera-release/*
+          body: |
+            Unofficial AERA build. Hardware boot and decryption are not verified.
+            Tree: ${{ env.DEVICE_TREE }}
+            Branch: ${{ env.DEVICE_TREE_BRANCH }}
+            Commit: ${{ env.COMMIT_ID }}

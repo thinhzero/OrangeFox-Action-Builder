@@ -1,4 +1,4 @@
-name: OrangeFox - Build
+name: Recovery - Build (OrangeFox / AERA)
 
 # Credits to:
 # https://github.com/TeamWin
@@ -9,6 +9,18 @@ name: OrangeFox - Build
 on:
   workflow_dispatch:
     inputs:
+      RECOVERY:
+        description: 'Recovery project'
+        required: true
+        default: OrangeFox
+        type: choice
+        options:
+        - OrangeFox
+        - AERA
+      AERA_MANIFEST_BRANCH:
+        description: 'AERA manifest branch (AERA only)'
+        required: false
+        default: 'aera-16.0'
       MANIFEST_BRANCH:
         description: 'OrangeFox Manifest Branch'
         required: true
@@ -18,11 +30,11 @@ on:
         - 12.1
         - 11.0
       DEVICE_TREE:
-        description: 'OrangeFox Device Tree'
+        description: 'Device tree URL for the selected recovery'
         required: false
         default: 'https://git.thinh2701p.xyz/thinhzero/android_device_xiaomi_thyme.git'
       DEVICE_TREE_BRANCH:
-        description: 'OrangeFox Device Tree Branch'
+        description: 'Device tree branch for the selected recovery'
         required: false
         default: 'fox_12.1'
       DEVICE_PATH:
@@ -44,7 +56,20 @@ on:
         - vendorboot
 
 jobs:
+  aera:
+    if: ${{ inputs.RECOVERY == 'AERA' }}
+    uses: ./.github/workflows/AERA-Compile.yml
+    permissions:
+      contents: write
+    with:
+      MANIFEST_BRANCH: ${{ inputs.AERA_MANIFEST_BRANCH || 'aera-16.0' }}
+      DEVICE_TREE: ${{ inputs.DEVICE_TREE || 'https://git.thinh2701p.xyz/thinhzero/android_device_xiaomi_thyme.git' }}
+      DEVICE_TREE_BRANCH: ${{ inputs.DEVICE_TREE_BRANCH || 'fox_12.1' }}
+      DEVICE_PATH: ${{ inputs.DEVICE_PATH || 'device/xiaomi/thyme' }}
+      DEVICE_NAME: ${{ inputs.DEVICE_NAME || 'thyme' }}
+      BUILD_TARGET: ${{ inputs.BUILD_TARGET || 'boot' }}
   build:
+    if: ${{ inputs.RECOVERY != 'AERA' }}
     name: Build OFR by ${{ github.actor }}
     runs-on: ubuntu-22.04
     env:
