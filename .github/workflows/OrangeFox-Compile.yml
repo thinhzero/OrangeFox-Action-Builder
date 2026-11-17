@@ -1484,6 +1484,12 @@ jobs:
         grep -q 'name: "lottie"' external/lottie/Android.bp
         grep -q 'name: "okio-lib"' external/okio/Android.bp
 
+        # Bluetooth's retained stack requires the Fraunhofer AAC codec.
+        git clone --depth 1 --branch android-12.1.0_r4 \
+          https://android.googlesource.com/platform/external/aac external/aac
+        [[ "$(git -C external/aac rev-parse HEAD)" == e9b8782d61c3a506ee4c32b6f1887d56b60a40b1 ]]
+        grep -q 'name: "libFraunhoferAAC"' external/aac/Android.bp
+
     - name: Diagnose literal source defaults
       if: env.THYME_BOOT_TEST == '1'
       run: |
